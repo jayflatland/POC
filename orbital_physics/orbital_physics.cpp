@@ -10,8 +10,9 @@
 
 using namespace std;
 
-static const double TIME_PER_THINK  = 3600.0; //s
-static const double VIEW_RANGE      = 4e11; //m
+static const double TIME_PER_THINK  = 60.0; //s
+//static const double VIEW_RANGE      = 400e9; //m
+static const double VIEW_RANGE      = 1e9; //m
 
 
 class App {
@@ -24,22 +25,31 @@ public:
         // }
 
         Particle earth;
-        earth.pos = Vector3(0.0, 150e9, 0.0); //m
-        earth.vel = Vector3(3.0e4, 0.0, 0.0); //m/s
+        earth.pos = Vector3();//Vector3(0.0, 150e9, 0.0); //m
+        earth.vel = Vector3();//Vector3(3.0e4, 0.0, 0.0); //m/s
         earth.mass = 5.97219e24;//kg
         earth.radius = 6.378e6; //m
         earth.disp_radius = VIEW_RANGE / 100.0;
         earth.color = Vector3(0.5, 0.5, 1.0);
         particles_.push_back(earth);
 
-        Particle mars;
-        mars.pos = Vector3(0.0, 2.279392e11, 0.0); //m
-        mars.vel = Vector3(2.4e4, 0.0, 0.0); //m/s
-        mars.mass = 6.36e23;//kg
-        mars.radius = 3.3895e6; //m
-        mars.disp_radius = VIEW_RANGE / 100.0;
-        mars.color = Vector3(1.0, 0.5, 0.5);
-        particles_.push_back(mars);
+        Particle moon;
+        moon.pos = earth.pos + Vector3(0.0, 384e6, 0.0); //m
+        moon.vel = earth.vel + Vector3(1.022e3, 0.0, 0.0); //m/s
+        moon.mass = 7.342e22;//kg
+        moon.radius = 1.7374e6; //m
+        moon.disp_radius = VIEW_RANGE / 100.0;
+        moon.color = Vector3(0.7, 0.7, 0.7);
+        particles_.push_back(moon);
+
+        // Particle mars;
+        // mars.pos = Vector3(0.0, 2.279392e11, 0.0); //m
+        // mars.vel = Vector3(2.4e4, 0.0, 0.0); //m/s
+        // mars.mass = 6.36e23;//kg
+        // mars.radius = 3.3895e6; //m
+        // mars.disp_radius = VIEW_RANGE / 100.0;
+        // mars.color = Vector3(1.0, 0.5, 0.5);
+        // particles_.push_back(mars);
 
         Particle sun;
         sun.pos.zero();
@@ -48,7 +58,7 @@ public:
         sun.radius = 6.95700e8; //m
         sun.disp_radius = VIEW_RANGE / 100.0;
         sun.color = Vector3(1.0, 1.0, 0.0);
-        particles_.push_back(sun);
+        // particles_.push_back(sun);
     }
 
     void think(double dt) {
@@ -69,7 +79,7 @@ public:
         }
 
         for(auto && p : particles_) {
-            p.think(dt);
+            p.elapse_time(dt);
         }
 
         double total_energy = 0.0;

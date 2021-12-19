@@ -31,7 +31,7 @@ public:
         disp_radius = 1.0;
     }
 
-    void think(double dt) {
+    void elapse_time(double dt) {
         vel.x += force.x * dt / mass;
         vel.y += force.y * dt / mass;
         vel.z += force.z * dt / mass;
