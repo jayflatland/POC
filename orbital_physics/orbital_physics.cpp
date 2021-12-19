@@ -10,9 +10,9 @@
 
 using namespace std;
 
-static const double TIME_PER_THINK  = 60.0; //s
-//static const double VIEW_RANGE      = 400e9; //m
-static const double VIEW_RANGE      = 1e9; //m
+static const double TIME_PER_THINK  = 600.0; //s
+static const double VIEW_RANGE      = 400e9; //m
+// static const double VIEW_RANGE      = 1e9; //m
 
 
 class App {
@@ -25,8 +25,8 @@ public:
         // }
 
         Particle earth;
-        earth.pos = Vector3();//Vector3(0.0, 150e9, 0.0); //m
-        earth.vel = Vector3();//Vector3(3.0e4, 0.0, 0.0); //m/s
+        earth.pos = Vector3(0.0, 150e9, 0.0); //m
+        earth.vel = Vector3(3.0e4, 0.0, 0.0); //m/s
         earth.mass = 5.97219e24;//kg
         earth.radius = 6.378e6; //m
         earth.disp_radius = VIEW_RANGE / 100.0;
@@ -42,14 +42,14 @@ public:
         moon.color = Vector3(0.7, 0.7, 0.7);
         particles_.push_back(moon);
 
-        // Particle mars;
-        // mars.pos = Vector3(0.0, 2.279392e11, 0.0); //m
-        // mars.vel = Vector3(2.4e4, 0.0, 0.0); //m/s
-        // mars.mass = 6.36e23;//kg
-        // mars.radius = 3.3895e6; //m
-        // mars.disp_radius = VIEW_RANGE / 100.0;
-        // mars.color = Vector3(1.0, 0.5, 0.5);
-        // particles_.push_back(mars);
+        Particle mars;
+        mars.pos = Vector3(0.0, 2.279392e11, 0.0); //m
+        mars.vel = Vector3(2.4e4, 0.0, 0.0); //m/s
+        mars.mass = 6.36e23;//kg
+        mars.radius = 3.3895e6; //m
+        mars.disp_radius = VIEW_RANGE / 100.0;
+        mars.color = Vector3(1.0, 0.5, 0.5);
+        particles_.push_back(mars);
 
         Particle sun;
         sun.pos.zero();
@@ -58,7 +58,7 @@ public:
         sun.radius = 6.95700e8; //m
         sun.disp_radius = VIEW_RANGE / 100.0;
         sun.color = Vector3(1.0, 1.0, 0.0);
-        // particles_.push_back(sun);
+        particles_.push_back(sun);
     }
 
     void think(double dt) {
@@ -105,6 +105,15 @@ public:
             glVertex3f(p.pos.x + p.disp_radius, p.pos.y - p.disp_radius, p.pos.z);
         }
         glEnd();
+
+        for(auto && p : particles_) {
+            glBegin(GL_LINE_STRIP);
+            glColor3f(p.color.x, p.color.y, p.color.z);
+            for(auto && pos: p.pos_history) {
+                glVertex3f(pos.x, pos.y, pos.z);
+            }
+            glEnd();
+        }
     }
 };
 
