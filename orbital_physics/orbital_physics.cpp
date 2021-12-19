@@ -6,87 +6,49 @@
 #include "GL/gl.h"
 
 #include "vector.hpp"
+#include "particle.hpp"
 
 using namespace std;
 
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
+static const double TIME_PER_THINK  = 3600.0; //s
+static const double VIEW_RANGE      = 4e11; //m
 
-boost::random::mt19937 randgen_;
-
-static const double G               = 100.0;    //gravitational constant
-static const int    TOTAL_PARTICLES = 1;
-static const double TIME_PER_THINK  = 1e-5;//1.0 / 60.0;
-static const double INIT_VEL_SCALE  = 1e3;
-
-
-class Particle {
-public:
-    Vector pos;
-    Vector vel;
-    Vector force;
-    Vector color;
-    double mass;
-    Particle() {
-        boost::random::uniform_real_distribution<> pos_dist(-100.0, 100.0);
-        boost::random::uniform_real_distribution<> vel_dist(-INIT_VEL_SCALE, INIT_VEL_SCALE);
-        boost::random::uniform_real_distribution<> color_dist(0.5, 1.0);
-
-        pos = Vector(pos_dist(randgen_), pos_dist(randgen_), 0.0);
-        vel = Vector(vel_dist(randgen_), vel_dist(randgen_), 0.0);
-        color = Vector(color_dist(randgen_), color_dist(randgen_), color_dist(randgen_));
-        mass = 1.0;
-    }
-
-    void think(double dt) {
-        vel.x += force.x * dt / mass;
-        vel.y += force.y * dt / mass;
-        vel.z += force.z * dt / mass;
-
-        pos.x += vel.x * dt;
-        pos.y += vel.y * dt;
-        pos.z += vel.z * dt;
-
-        if(pos.x >  100.0) {pos.x =  200.0 - pos.x; vel.x = -vel.x;}
-        if(pos.y >  100.0) {pos.y =  200.0 - pos.y; vel.y = -vel.y;}
-        if(pos.z >  100.0) {pos.z =  200.0 - pos.z; vel.z = -vel.z;}
-        if(pos.x < -100.0) {pos.x = -200.0 - pos.x; vel.x = -vel.x;}
-        if(pos.y < -100.0) {pos.y = -200.0 - pos.y; vel.y = -vel.y;}
-        if(pos.z < -100.0) {pos.z = -200.0 - pos.z; vel.z = -vel.z;}
-    }
-
-    void preinteract() {
-        force.zero();
-    }
-
-    void interact(const Particle &other) {
-        double r = pos.dist(other.pos);
-        double F = G * mass * other.mass / (r * r);
-        Vector dirto = other.pos - pos;
-        dirto.normalize();
-        force += dirto * F;
-    }
-
-    void postinteract() {
-
-    }
-};
 
 class App {
 public:
     std::vector<Particle> particles_;
 
     void init() {
-        for(int i = 0; i < TOTAL_PARTICLES; i++) {
-            particles_.push_back(Particle());
-        }
+        // for(int i = 0; i < 300; i++) {
+        //     particles_.push_back(Particle());
+        // }
 
         Particle earth;
-        earth.pos.zero();
-        earth.vel.zero();
-        earth.mass = 1e6;
-        earth.color = Vector(0.5, 0.5, 1.0);
+        earth.pos = Vector3(0.0, 150e9, 0.0); //m
+        earth.vel = Vector3(3.0e4, 0.0, 0.0); //m/s
+        earth.mass = 5.97219e24;//kg
+        earth.radius = 6.378e6; //m
+        earth.disp_radius = VIEW_RANGE / 100.0;
+        earth.color = Vector3(0.5, 0.5, 1.0);
         particles_.push_back(earth);
+
+        Particle mars;
+        mars.pos = Vector3(0.0, 2.279392e11, 0.0); //m
+        mars.vel = Vector3(2.4e4, 0.0, 0.0); //m/s
+        mars.mass = 6.36e23;//kg
+        mars.radius = 3.3895e6; //m
+        mars.disp_radius = VIEW_RANGE / 100.0;
+        mars.color = Vector3(1.0, 0.5, 0.5);
+        particles_.push_back(mars);
+
+        Particle sun;
+        sun.pos.zero();
+        sun.vel.zero();
+        sun.mass = 1.9891e30;//kg
+        sun.radius = 6.95700e8; //m
+        sun.disp_radius = VIEW_RANGE / 100.0;
+        sun.color = Vector3(1.0, 1.0, 0.0);
+        particles_.push_back(sun);
     }
 
     void think(double dt) {
@@ -118,19 +80,19 @@ public:
     }
 
     void draw() {
-        glClearColor(0.3, 0.0, 0.0, 0.0);
+        glClearColor(0.0, 0.0, 0.0, 0.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glLoadIdentity();
-        glOrtho(-100.0, 100.0, -100.0, 100.0, -100.0, 100.0);
+        glOrtho(-VIEW_RANGE, VIEW_RANGE, -VIEW_RANGE, VIEW_RANGE, -VIEW_RANGE, VIEW_RANGE);
 
         glBegin(GL_QUADS);
         for(auto && p : particles_) {
             glColor3f(p.color.x, p.color.y, p.color.z);
-            glVertex3f(p.pos.x + 1.0, p.pos.y + 1.0, p.pos.z);
-            glVertex3f(p.pos.x - 1.0, p.pos.y + 1.0, p.pos.z);
-            glVertex3f(p.pos.x - 1.0, p.pos.y - 1.0, p.pos.z);
-            glVertex3f(p.pos.x + 1.0, p.pos.y - 1.0, p.pos.z);
+            glVertex3f(p.pos.x + p.disp_radius, p.pos.y + p.disp_radius, p.pos.z);
+            glVertex3f(p.pos.x - p.disp_radius, p.pos.y + p.disp_radius, p.pos.z);
+            glVertex3f(p.pos.x - p.disp_radius, p.pos.y - p.disp_radius, p.pos.z);
+            glVertex3f(p.pos.x + p.disp_radius, p.pos.y - p.disp_radius, p.pos.z);
         }
         glEnd();
     }

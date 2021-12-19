@@ -2,36 +2,36 @@
 
 #include <math.h>
 
-class Vector {
+class Vector3 {
 public:
     double x, y, z;
-    Vector() : x(0.0), y(0.0), z(0.0) {}
-    Vector(const double &x, const double &y, const double &z) : x(x), y(y), z(z) {}
+    Vector3() : x(0.0), y(0.0), z(0.0) {}
+    Vector3(const double &x, const double &y, const double &z) : x(x), y(y), z(z) {}
 
     void zero() {
         x = y = z = 0.0;
     }
 
-    Vector operator +(const Vector &other) const {
-        return Vector(x + other.x, y + other.y, z + other.z);
+    Vector3 operator +(const Vector3 &other) const {
+        return Vector3(x + other.x, y + other.y, z + other.z);
     }
 
-    Vector operator -(const Vector &other) const {
-        return Vector(x - other.x, y - other.y, z - other.z);
+    Vector3 operator -(const Vector3 &other) const {
+        return Vector3(x - other.x, y - other.y, z - other.z);
     }
 
-    double dot(const Vector &other) const {
+    double dot(const Vector3 &other) const {
         return x * other.x + y * other.y + z * other.z;
     }
 
-    void operator +=(const Vector &other) {
+    void operator +=(const Vector3 &other) {
         x += other.x;
         y += other.y;
         z += other.z;
     }
 
-    Vector operator *(const double &other) const {
-        return Vector(x * other, y * other, z * other);
+    Vector3 operator *(const double &other) const {
+        return Vector3(x * other, y * other, z * other);
     }
 
     double magnitude() const {
@@ -51,7 +51,7 @@ public:
         }
     }
 
-    double dist(const Vector &other) const {
+    double dist(const Vector3 &other) const {
         return (*this - other).magnitude();
     }
 };
