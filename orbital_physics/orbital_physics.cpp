@@ -24,6 +24,15 @@ public:
         //     particles_.push_back(Particle());
         // }
 
+        Particle sun;
+        sun.pos.zero();
+        sun.vel.zero();
+        sun.mass = 1.9891e30;//kg
+        sun.radius = 6.95700e8; //m
+        sun.disp_radius = VIEW_RANGE / 100.0;
+        sun.color = Vector3(1.0, 1.0, 0.0);
+        particles_.push_back(sun);
+
         Particle earth;
         earth.pos = Vector3(0.0, 150e9, 0.0); //m
         earth.vel = Vector3(3.0e4, 0.0, 0.0); //m/s
@@ -51,17 +60,17 @@ public:
         mars.color = Vector3(1.0, 0.5, 0.5);
         particles_.push_back(mars);
 
-        Particle sun;
-        sun.pos.zero();
-        sun.vel.zero();
-        sun.mass = 1.9891e30;//kg
-        sun.radius = 6.95700e8; //m
-        sun.disp_radius = VIEW_RANGE / 100.0;
-        sun.color = Vector3(1.0, 1.0, 0.0);
-        particles_.push_back(sun);
+        Particle jwst;
+        jwst.pos = Vector3(0.0, 150e9 + 1.5e9, 0.0); //m
+        jwst.vel = Vector3(3.0e4 * (150+1.5)/150, 0.0, 0.0); //m/s
+        jwst.mass = 6200;//kg
+        jwst.radius = 22.0; //m
+        jwst.disp_radius = VIEW_RANGE / 100.0;
+        jwst.color = Vector3(0.5, 0.5, 0.0);
+        particles_.push_back(jwst);
     }
 
-    void think(double dt) {
+    void think(double t, double dt) {
         for(auto && p : particles_) {
             p.preinteract();
         }
@@ -95,14 +104,21 @@ public:
 
         glLoadIdentity();
         glOrtho(-VIEW_RANGE, VIEW_RANGE, -VIEW_RANGE, VIEW_RANGE, -VIEW_RANGE, VIEW_RANGE);
+        
+        double s = 1.0;
+
+        // s = 100.0;
+        // auto && p = particles_[1];
+        // glScalef(s, s, s);
+        // glTranslatef(-p.pos.x, -p.pos.y, 0.0);
 
         glBegin(GL_QUADS);
         for(auto && p : particles_) {
             glColor3f(p.color.x, p.color.y, p.color.z);
-            glVertex3f(p.pos.x + p.disp_radius, p.pos.y + p.disp_radius, p.pos.z);
-            glVertex3f(p.pos.x - p.disp_radius, p.pos.y + p.disp_radius, p.pos.z);
-            glVertex3f(p.pos.x - p.disp_radius, p.pos.y - p.disp_radius, p.pos.z);
-            glVertex3f(p.pos.x + p.disp_radius, p.pos.y - p.disp_radius, p.pos.z);
+            glVertex3f(p.pos.x + p.disp_radius / s, p.pos.y + p.disp_radius / s, p.pos.z);
+            glVertex3f(p.pos.x - p.disp_radius / s, p.pos.y + p.disp_radius / s, p.pos.z);
+            glVertex3f(p.pos.x - p.disp_radius / s, p.pos.y - p.disp_radius / s, p.pos.z);
+            glVertex3f(p.pos.x + p.disp_radius / s, p.pos.y - p.disp_radius / s, p.pos.z);
         }
         glEnd();
 
@@ -120,12 +136,16 @@ public:
 
 
 App app;
+double t = 0.0;
 
 void draw() {
     double dt = TIME_PER_THINK;
-    app.think(dt);
+    app.think(t, dt);
     app.draw();
     glutSwapBuffers();
+
+    t += dt;
+    cout << "day=" << t/86400.0 << endl;
 }
 
 void handleKeys(unsigned char key, int x, int y) {

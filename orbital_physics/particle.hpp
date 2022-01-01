@@ -39,9 +39,9 @@ public:
     }
 
     void elapse_time(double dt) {
-        vel.x += force.x * dt / mass;
-        vel.y += force.y * dt / mass;
-        vel.z += force.z * dt / mass;
+        vel.x += 0.5 * force.x * dt / mass;
+        vel.y += 0.5 * force.y * dt / mass;
+        vel.z += 0.5 * force.z * dt / mass;
 
         pos.x += vel.x * dt;
         pos.y += vel.y * dt;
