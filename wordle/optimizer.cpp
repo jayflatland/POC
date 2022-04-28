@@ -283,18 +283,6 @@ int countSolutionsThatMatch(const Word &guess, const MatchResults &matchResults,
     int cnt = 0;
     for(auto && testSolution : possibleSolutions)
     {
-        //if(testSolution == guess) {continue;}
-        bool greensMismatch = false;
-        for(int i = 0; i < 5; i++)
-        {
-            if(matchResults.m_pos[i].m_color == Color::Green && guess[i] != matchResults.m_pos[i].m_letter)
-            {
-                greensMismatch = true;
-                break;
-            }
-        }
-        if(greensMismatch) continue;
-
         auto testResults = calcMatchResults(testSolution, guess);
         if(testResults == matchResults)
         {
