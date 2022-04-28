@@ -263,12 +263,12 @@ MatchResults calcMatchResults(const Word &solution, const Word &guess)
 }
 
 
-WordList findSolutionsThatMatch(const Word &guess, const MatchResults &matchResults, const WordList &possibleSolutions)
+WordList findSolutionsThatMatch(const MatchResults &matchResults, const WordList &possibleSolutions)
 {
     WordList remainingSolutions;
     for(auto && testSolution : possibleSolutions)
     {
-        auto testResults = calcMatchResults(testSolution, guess);
+        auto testResults = calcMatchResults(testSolution, matchResults.guess());
         if(testResults == matchResults)
         {
             remainingSolutions.push_back(testSolution);
@@ -278,12 +278,12 @@ WordList findSolutionsThatMatch(const Word &guess, const MatchResults &matchResu
 }
 
 
-int countSolutionsThatMatch(const Word &guess, const MatchResults &matchResults, const WordList &possibleSolutions)
+int countSolutionsThatMatch(const MatchResults &matchResults, const WordList &possibleSolutions)
 {
     int cnt = 0;
     for(auto && testSolution : possibleSolutions)
     {
-        auto testResults = calcMatchResults(testSolution, guess);
+        auto testResults = calcMatchResults(testSolution, matchResults.guess());
         if(testResults == matchResults)
         {
             cnt++;
@@ -305,7 +305,7 @@ Word findBestGuessWord(const WordList &possibleSolutions, const WordList &wordsT
         for(auto && solution : possibleSolutions)
         {
             auto results = calcMatchResults(solution, guess);
-            auto cnt = countSolutionsThatMatch(guess, results, possibleSolutions);
+            auto cnt = countSolutionsThatMatch(results, possibleSolutions);
             sumCnt += 1;
             sumRemainingSolutionCnt += cnt;
             maxRemainingSolutionCnt = std::max(maxRemainingSolutionCnt, cnt);
@@ -351,9 +351,9 @@ WordList findBestFirst2GuessWords(const WordList &possibleSolutions, const WordL
             {
                 MatchResults results;
                 results = calcMatchResults(solution, guess1);
-                auto solutions1 = findSolutionsThatMatch(guess1, results, possibleSolutions);
+                auto solutions1 = findSolutionsThatMatch(results, possibleSolutions);
                 results = calcMatchResults(solution, guess2);
-                auto cnt = countSolutionsThatMatch(guess2, results, solutions1);
+                auto cnt = countSolutionsThatMatch(results, solutions1);
                 sumCnt += 1;
                 sumRemainingSolutionCnt += cnt;
                 maxRemainingSolutionCnt = std::max(maxRemainingSolutionCnt, cnt);
@@ -418,8 +418,7 @@ void assistant()
 
         for(auto &matchResults : guessesAndResults)
         {
-            auto guess = matchResults.guess();
-            possibleSolutions = findSolutionsThatMatch(guess, matchResults, possibleSolutions);
+            possibleSolutions = findSolutionsThatMatch(matchResults, possibleSolutions);
             std::cout << "Guess: " << matchResults << " => " << possibleSolutions.size() << " solutions left";
             if(possibleSolutions.size() < 20)
             {
