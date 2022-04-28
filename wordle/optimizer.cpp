@@ -12,39 +12,27 @@ enum class Color : uint8_t
     Green
 };
 
-class Word
+class Word : public std::array<char, 5>
 {
 public:
-    std::array<char, 5> m_letters;
-
     Word()
     {
-        std::fill(m_letters.begin(), m_letters.end(), '_');
+        std::fill(this->begin(), this->end(), '_');
     }
 
     Word(const char *s)
     {
-        std::copy(s, s + 5, m_letters.begin());
+        std::copy(s, s + 5, this->begin());
     }
 
     Word(const std::string &s)
     {
-        std::copy(s.c_str(), s.c_str() + 5, m_letters.begin());
-    }
-
-    char &operator[](int i)
-    {
-        return m_letters[i];
-    }
-
-    char operator[](int i) const
-    {
-        return m_letters[i];
+        std::copy(s.c_str(), s.c_str() + 5, this->begin());
     }
 
     bool contains(char c) const
     {
-        for(auto &&l : m_letters)
+        for(auto &&l : *this)
         {
             if(l == c)
             {
@@ -56,7 +44,7 @@ public:
 
     void remove(char x)
     {
-        for(auto &l : m_letters)
+        for(auto &l : *this)
         {
             if(l == x)
             {
@@ -65,17 +53,12 @@ public:
             }
         }
     }
-
-    bool operator ==(const Word &o) const 
-    {
-        return m_letters == o.m_letters;
-    }
 };
 
 template <typename StreamT>
 StreamT &operator<<(StreamT &s, const Word &w)
 {
-    for(auto && c : w.m_letters)
+    for(auto && c : w)
     {
         s << c;
     }
@@ -190,7 +173,7 @@ public:
         Word r;
         for(int i = 0; i < 5; i++)
         {
-            r.m_letters[i] = m_pos[i].m_letter;
+            r[i] = m_pos[i].m_letter;
         }
         return r;
     }
@@ -199,7 +182,7 @@ public:
     {
         for(int i = 0; i < 5; i++)
         {
-            m_pos[i].m_letter = w.m_letters[i];
+            m_pos[i].m_letter = w[i];
         }
     }
     
@@ -269,7 +252,7 @@ MatchResults calcMatchResults(const Word &solution, const Word &guess)
         if(solutionCopy.contains(guessCopy[i]))
         {
             results.m_pos[i].m_color = Color::Yellow;
-            // solutionCopy[i] = '_';
+            solutionCopy.remove(guessCopy[i]);
             guessCopy[i] = '*';
         }
         // std::cout << "i=" << i << ", solutionCopy=" << solutionCopy << ", guessCopy=" << guessCopy << ", results=" << results << std::endl;
@@ -300,6 +283,18 @@ int countSolutionsThatMatch(const Word &guess, const MatchResults &matchResults,
     int cnt = 0;
     for(auto && testSolution : possibleSolutions)
     {
+        //if(testSolution == guess) {continue;}
+        bool greensMismatch = false;
+        for(int i = 0; i < 5; i++)
+        {
+            if(matchResults.m_pos[i].m_color == Color::Green && guess[i] != matchResults.m_pos[i].m_letter)
+            {
+                greensMismatch = true;
+                break;
+            }
+        }
+        if(greensMismatch) continue;
+
         auto testResults = calcMatchResults(testSolution, guess);
         if(testResults == matchResults)
         {
@@ -318,32 +313,35 @@ Word findBestGuessWord(const WordList &possibleSolutions, const WordList &wordsT
     {
         int sumRemainingSolutionCnt = 0;
         int sumCnt = 0;
+        int maxRemainingSolutionCnt = 0;
         for(auto && solution : possibleSolutions)
         {
             auto results = calcMatchResults(solution, guess);
             auto cnt = countSolutionsThatMatch(guess, results, possibleSolutions);
             sumCnt += 1;
             sumRemainingSolutionCnt += cnt;
+            maxRemainingSolutionCnt = std::max(maxRemainingSolutionCnt, cnt);
             // if(guess == "comet")
             // {
             //     std::cout << guess << ", " << solution << ", " << cnt << std::endl;
             // }
         }
-        double avgRemainingSolutionCnt = (double)sumRemainingSolutionCnt / (double)sumCnt;
-        if(avgRemainingSolutionCnt < bestAvgRemainingSolutionCnt)
+        double score = (double)sumRemainingSolutionCnt / (double)sumCnt;
+        // double score = maxRemainingSolutionCnt;
+        if(score < bestAvgRemainingSolutionCnt)
         {
             //if count is low then require the guess be a solution
-            if(avgRemainingSolutionCnt > 5 || possibleSolutions.contains(guess))
+            if(score > 5 || possibleSolutions.contains(guess))
             {
-                bestAvgRemainingSolutionCnt = avgRemainingSolutionCnt;
+                bestAvgRemainingSolutionCnt = score;
                 bestGuess = guess;
                 // std::cout << "New best guess: " << bestGuess << ", " << bestAvgRemainingSolutionCnt << std::endl;
-                // std::cout << "    avgRemainingSolutionCnt=" << avgRemainingSolutionCnt << ", sumRemainingSolutionCnt=" << sumRemainingSolutionCnt << ", sumCnt=" << sumCnt << std::endl;
+                // std::cout << "    score=" << score << ", sumRemainingSolutionCnt=" << sumRemainingSolutionCnt << ", sumCnt=" << sumCnt << std::endl;
             }
         }
         if(verbose)
         {
-            std::cout << guess << ", " << avgRemainingSolutionCnt << ", " << bestGuess << ", " << bestAvgRemainingSolutionCnt << std::endl;
+            std::cout << guess << ", " << score << ", " << bestGuess << ", " << bestAvgRemainingSolutionCnt << std::endl;
         }
     }
     return bestGuess;
@@ -360,33 +358,36 @@ WordList findBestFirst2GuessWords(const WordList &possibleSolutions, const WordL
         {
             int sumRemainingSolutionCnt = 0;
             int sumCnt = 0;
+            int maxRemainingSolutionCnt = 0;
             for(auto && solution : possibleSolutions)
             {
                 MatchResults results;
                 results = calcMatchResults(solution, guess1);
                 auto solutions1 = findSolutionsThatMatch(guess1, results, possibleSolutions);
                 results = calcMatchResults(solution, guess2);
-                auto solutions2 = findSolutionsThatMatch(guess2, results, possibleSolutions);
+                auto cnt = countSolutionsThatMatch(guess2, results, solutions1);
                 sumCnt += 1;
-                sumRemainingSolutionCnt += solutions2.size();
+                sumRemainingSolutionCnt += cnt;
+                maxRemainingSolutionCnt = std::max(maxRemainingSolutionCnt, cnt);
             }
-            double avgRemainingSolutionCnt = (double)sumRemainingSolutionCnt / (double)sumCnt;
-            if(avgRemainingSolutionCnt < bestAvgRemainingSolutionCnt)
+            // double score = (double)sumRemainingSolutionCnt / (double)sumCnt;
+            double score = maxRemainingSolutionCnt;
+            if(score < bestAvgRemainingSolutionCnt)
             {
                 //if count is low then require the guess be a solution
-                //if(avgRemainingSolutionCnt > 5 || possibleSolutions.contains(guess))
+                //if(score > 5 || possibleSolutions.contains(guess))
                 {
-                    bestAvgRemainingSolutionCnt = avgRemainingSolutionCnt;
+                    bestAvgRemainingSolutionCnt = score;
                     bestGuesses = WordList();
                     bestGuesses.push_back(guess1);
                     bestGuesses.push_back(guess2);
                     // std::cout << "New best guess: " << bestGuesses << ", " << bestAvgRemainingSolutionCnt << std::endl;
-                    // std::cout << "    avgRemainingSolutionCnt=" << avgRemainingSolutionCnt << ", sumRemainingSolutionCnt=" << sumRemainingSolutionCnt << ", sumCnt=" << sumCnt << std::endl;
+                    // std::cout << "    score=" << score << ", sumRemainingSolutionCnt=" << sumRemainingSolutionCnt << ", sumCnt=" << sumCnt << std::endl;
                 }
             }
             if(verbose)
             {
-                std::cout << guess1 << ", " << guess2 << ", " << avgRemainingSolutionCnt << ", " << bestGuesses << ", " << bestAvgRemainingSolutionCnt << std::endl;
+                std::cout << guess1 << ", " << guess2 << ", " << score << ", " << bestGuesses << ", " << bestAvgRemainingSolutionCnt << std::endl;
             }
         }
     }
@@ -396,20 +397,20 @@ WordList findBestFirst2GuessWords(const WordList &possibleSolutions, const WordL
 
 void assistant()
 {
+    auto bestFirstWord = Word("roate");
+    // auto bestFirstWord = Word("aesir");
     auto words = readWords("words.txt");
     auto solutions = readWords("solutions.txt");
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
 
     std::vector<MatchResults> guessesAndResults;
 
-    // std::cout << calcMatchResults("rotor", "soare") << std::endl;
-    // return 0;
-    //best first guess: soare?  roate?
+    //best first guess: soare?  roate?  aesir?
 
-    std::cout << "Best first word is 'roate'" << std::endl;
+    std::cout << "Best first word is '" << bestFirstWord << "'" << std::endl;
 
     MatchResults mr;
-    mr.setGuess("roate");
+    mr.setGuess(bestFirstWord);
     while(true)
     {
         std::string s;
@@ -418,7 +419,7 @@ void assistant()
         // std::getline(std::cin, s);
         // mr.setGuess(s.c_str());
 
-        std::cout << "Enter results (e.g. g_gyy_): ";
+        std::cout << "Enter results (e.g. gbgyyb): ";
         std::getline(std::cin, s);
         mr.setColors(s.c_str());
         guessesAndResults.push_back(mr);
@@ -470,10 +471,17 @@ void findBestFirst2Words()
     std::cout << "Best word to guesses are " << bestGuesses << std::endl;
 }
 
+
+void testCalcMatchResults()
+{
+    std::cout << calcMatchResults("awful", "cabal") << std::endl;
+}
+
 int main()
 {
     // assistant();
-    // findBestFirstWord();
-    findBestFirst2Words();
+    // testCalcMatchResults();
+    findBestFirstWord();
+    // findBestFirst2Words();
     return 0;
 }
