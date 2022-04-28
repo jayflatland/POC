@@ -12,15 +12,22 @@ sns.set_style("whitegrid")
 df = pd.read_csv("words.csv")
 df = df[df.isSolution == 1]
 
-notLetters = "caeprud"
+notLetters = "scalpru"
 
 notSpots = [
-    (3, 'l'),
+    (4, 'e'),
+    (2, 'o'),
+    (4, 'd'),
+
+    (0, 'd'),
+    (1, 'e'),
+    (2, 'm'),
+    (3, 'o'),
 ]
 
 isSpots = [
-    (0, 's'),
-    (2, 'o'),
+    #(0, 's'),
+    #(2, 'o'),
 ]
 
 for c in notLetters:
