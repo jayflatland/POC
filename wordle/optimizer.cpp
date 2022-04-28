@@ -54,14 +54,14 @@ public:
         return false;
     }
 
-    void replace(char x, char y, int maxcnt)
+    void remove(char x)
     {
         for(auto &l : m_letters)
         {
-            if(l == x && maxcnt > 0)
+            if(l == x)
             {
-                maxcnt--;
-                l = y;
+                l = '_';
+                break;
             }
         }
     }
@@ -173,16 +173,16 @@ class MatchResults
 public:
     std::array<LetterColor, 5> m_pos;
 
-    MatchResults() {}
+    MatchResults()
+    {
+        setGuess("_____");
+        setColors("_____");
+    }
+
     MatchResults(const char *word, const char *colors)
     {
-        for(int i = 0; i < 5; i++)
-        {
-            m_pos[i].m_letter = word[i];
-            m_pos[i].m_color = Color::Gray;
-            if(colors[i] == 'y') m_pos[i].m_color = Color::Yellow;
-            if(colors[i] == 'g') m_pos[i].m_color = Color::Green;
-        }
+        setGuess(word);
+        setColors(colors);
     }
 
     Word guess() const
@@ -193,6 +193,24 @@ public:
             r.m_letters[i] = m_pos[i].m_letter;
         }
         return r;
+    }
+
+    void setGuess(const Word &w)
+    {
+        for(int i = 0; i < 5; i++)
+        {
+            m_pos[i].m_letter = w.m_letters[i];
+        }
+    }
+    
+    void setColors(const char *colors)
+    {
+        for(int i = 0; i < 5; i++)
+        {
+            m_pos[i].m_color = Color::Gray;
+            if(colors[i] == 'y') m_pos[i].m_color = Color::Yellow;
+            if(colors[i] == 'g') m_pos[i].m_color = Color::Green;
+        }
     }
     
     bool operator==(const MatchResults &o) const
@@ -223,25 +241,39 @@ MatchResults calcMatchResults(const Word &solution, const Word &guess)
 {
     auto results = MatchResults();
     Word solutionCopy = solution;
+    Word guessCopy = guess;
 
+    //copy in word
+    results.setGuess(guess);
+
+    //check for greens first
     for(size_t i = 0; i < 5; i++)
     {
-        auto solutionLetter = solutionCopy[i];
-        auto guessLetter = guess[i];
-        results.m_pos[i].m_letter = guessLetter;
-        if(guessLetter == solutionLetter)
+        // std::cout << "i=" << i << ", solutionCopy=" << solutionCopy << ", guessCopy=" << guessCopy << ", results=" << results << std::endl;
+        if(guessCopy[i] == solutionCopy[i])
         {
             results.m_pos[i].m_color = Color::Green;
+            solutionCopy[i] = '_';
+            guessCopy[i] = '*';
         }
-        else if(solutionCopy.contains(guessLetter))
+        // std::cout << "i=" << i << ", solutionCopy=" << solutionCopy << ", guessCopy=" << guessCopy << ", results=" << results << std::endl;
+        // std::cout << std::endl;
+    }
+
+    // std::cout << std::endl;
+
+    //check for yellows
+    for(size_t i = 0; i < 5; i++)
+    {
+        // std::cout << "i=" << i << ", solutionCopy=" << solutionCopy << ", guessCopy=" << guessCopy << ", results=" << results << std::endl;
+        if(solutionCopy.contains(guessCopy[i]))
         {
             results.m_pos[i].m_color = Color::Yellow;
-            solutionCopy.replace(guessLetter, '_', 1);
+            // solutionCopy[i] = '_';
+            guessCopy[i] = '*';
         }
-        else
-        {
-            results.m_pos[i].m_color = Color::Gray;
-        }
+        // std::cout << "i=" << i << ", solutionCopy=" << solutionCopy << ", guessCopy=" << guessCopy << ", results=" << results << std::endl;
+        // std::cout << std::endl;
     }
 
     return results;
@@ -288,7 +320,7 @@ struct WordAndScoreList : public std::vector<WordAndScore>
 {
 };
 
-Word findBestGuessWord(const WordList &priorSolutions, const WordList &wordsToTry)
+Word findBestGuessWord(const WordList &priorSolutions, const WordList &wordsToTry, bool verbose=false)
 {
     WordAndScoreList guessesAndScores;
     double bestAvgRemainingSolutionCnt = std::numeric_limits<double>::max();
@@ -308,7 +340,7 @@ Word findBestGuessWord(const WordList &priorSolutions, const WordList &wordsToTr
             //     std::cout << guess << ", " << solution << ", " << cnt << std::endl;
             // }
         }
-        double avgRemainingSolutionCnt = sumRemainingSolutionCnt / sumCnt;
+        double avgRemainingSolutionCnt = (double)sumRemainingSolutionCnt / (double)sumCnt;
         if(avgRemainingSolutionCnt < bestAvgRemainingSolutionCnt)
         {
             //if count is low then require the guess be a solution
@@ -320,68 +352,82 @@ Word findBestGuessWord(const WordList &priorSolutions, const WordList &wordsToTr
                 // std::cout << "    avgRemainingSolutionCnt=" << avgRemainingSolutionCnt << ", sumRemainingSolutionCnt=" << sumRemainingSolutionCnt << ", sumCnt=" << sumCnt << std::endl;
             }
         }
-        // std::cout << guess << ", " << avgRemainingSolutionCnt << ", " << bestGuess << ", " << bestAvgRemainingSolutionCnt << std::endl;
+        if(verbose)
+        {
+            std::cout << guess << ", " << avgRemainingSolutionCnt << ", " << bestGuess << ", " << bestAvgRemainingSolutionCnt << std::endl;
+        }
         guessesAndScores.push_back({guess, avgRemainingSolutionCnt});
     }
     return bestGuess;
 }
 
-
-// void test()
-// {
-//     auto words = readWords("words.txt");
-//     auto solutions = readWords("solutions.txt");
-//     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
-
-//     auto results = MatchResults{"honey", "ggggg"};
-//     auto guess = results.guess();
-//     auto &wordsToTry = words;
-
-//     auto cnt = countSolutionsThatMatch(guess, results, wordsToTry);
-//     auto possibleSolutions = findSolutionsThatMatch(guess, results, solutions);
-//     std::cout << "Remaining solutions: (" << cnt << "): " << possibleSolutions << std::endl;
-//     auto bestGuess = findBestGuessWord(possibleSolutions, wordsToTry);
-//     std::cout << "Best word to guess is " << bestGuess << std::endl;
-// }
-
-
-void solveHelper()
+void assistant()
 {
     auto words = readWords("words.txt");
     auto solutions = readWords("solutions.txt");
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
 
-    //BEST FIRST WORD IS soare
-    std::vector<MatchResults> guessesAndResults = {
-        MatchResults{"soare", " y yg"},
-        MatchResults{"prove", " gg g"},
-        // MatchResults{"bowel", " g gg"},
-    };
+    std::vector<MatchResults> guessesAndResults;
 
-    auto possibleSolutions = solutions;
-    auto wordsToTry = words;
-    MatchResults matchResults;
+    // std::cout << calcMatchResults("rotor", "soare") << std::endl;
+    // return 0;
+    //best first guess: soare?  roate?
 
-    for(auto &matchResults : guessesAndResults)
+    std::cout << "Best first word is 'roate'" << std::endl;
+
+    MatchResults mr;
+    mr.setGuess("roate");
+    while(true)
     {
-        auto guess = matchResults.guess();
-        possibleSolutions = findSolutionsThatMatch(guess, matchResults, possibleSolutions);
-        std::cout << "Guess: " << matchResults << " => " << possibleSolutions.size() << " solutions left" << std::endl;
+        std::string s;
+        std::cout << "Enter guess: " << mr.guess() << std::endl;
+        // std::cout << "Enter guess: ";
+        // std::getline(std::cin, s);
+        // mr.setGuess(s.c_str());
+
+        std::cout << "Enter results (e.g. g_gyy_): ";
+        std::getline(std::cin, s);
+        mr.setColors(s.c_str());
+        guessesAndResults.push_back(mr);
+
+        auto possibleSolutions = solutions;
+        auto wordsToTry = words;
+        MatchResults matchResults;
+
+        for(auto &matchResults : guessesAndResults)
+        {
+            auto guess = matchResults.guess();
+            possibleSolutions = findSolutionsThatMatch(guess, matchResults, possibleSolutions);
+            std::cout << "Guess: " << matchResults << " => " << possibleSolutions.size() << " solutions left";
+            if(possibleSolutions.size() < 20)
+            {
+                std::cout << ": " << possibleSolutions;
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << "Checking " << wordsToTry.size() << " words for best guess word to reduce " << possibleSolutions.size() << " possible solutions" << std::endl;
+        auto bestGuess = findBestGuessWord(possibleSolutions, wordsToTry);
+        std::cout << "Best word to guess is '" << bestGuess << "'" << std::endl;
+        mr.setGuess(bestGuess);
     }
-    std::cout << "Remaining solutions: (" << possibleSolutions.size() << "): " << possibleSolutions << std::endl;
-
-    std::cout << "Checking " << wordsToTry.size() << " possible guess words for max reduction of " << possibleSolutions.size() << " possible solutions" << std::endl;
-    auto bestGuess = findBestGuessWord(possibleSolutions, wordsToTry);
-    std::cout << "Best word to guess is " << bestGuess << std::endl;
-
-    // possibleSolutions = findSolutionsThatMatch(bestGuess, matchResults, wordsToTry);
-    // std::cout << "Remaining solutions: (" << possibleSolutions.size() << "): " << possibleSolutions << std::endl;
 }
 
 
+void findBestFirstWord()
+{
+    auto words = readWords("words.txt");
+    auto solutions = readWords("solutions.txt");
+    std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
+
+    std::cout << "Checking " << words.size() << " words for best guess word to reduce " << solutions.size() << " possible solutions" << std::endl;
+    auto bestGuess = findBestGuessWord(solutions, words, true);
+    std::cout << "Best word to guess is " << bestGuess << std::endl;
+}
+
 int main()
 {
-    solveHelper();
-    // test();
+    assistant();
+    // findBestFirstWord();
     return 0;
 }
