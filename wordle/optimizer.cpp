@@ -4,6 +4,9 @@
 #include <array>
 #include <vector>
 #include <limits>
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
 
 enum class Color : uint8_t
 {
@@ -69,7 +72,9 @@ StreamT &operator<<(StreamT &s, const Word &w)
 class WordList : public std::vector<Word>
 {
 public:
-    //WordList(const )
+    WordList() {}
+    WordList(const std::vector<Word> && wl) : std::vector<Word>(wl) {}
+
     bool contains(const Word &word) const
     {
         for(auto && w : *this)
@@ -278,13 +283,21 @@ WordList findSolutionsThatMatch(const MatchResults &matchResults, const WordList
 }
 
 
+bool solutionIsPossibleForMatchResults(const Word &solution, const MatchResults &matchResults)
+{
+    auto testResults = calcMatchResults(solution, matchResults.guess());
+    return testResults == matchResults;
+    // return matchResults == matchResults;
+    //return true;
+}
+
+
 int countSolutionsThatMatch(const MatchResults &matchResults, const WordList &possibleSolutions)
 {
     int cnt = 0;
     for(auto && testSolution : possibleSolutions)
     {
-        auto testResults = calcMatchResults(testSolution, matchResults.guess());
-        if(testResults == matchResults)
+        if(solutionIsPossibleForMatchResults(testSolution, matchResults))
         {
             cnt++;
         }
@@ -295,6 +308,11 @@ int countSolutionsThatMatch(const MatchResults &matchResults, const WordList &po
 
 Word findBestGuessWord(const WordList &possibleSolutions, const WordList &wordsToTry, bool verbose=false)
 {
+    if(possibleSolutions.size() == 1)
+    {
+        return possibleSolutions[0];
+    }
+
     double bestAvgRemainingSolutionCnt = std::numeric_limits<double>::max();
     Word bestGuess;
     for(auto && guess : wordsToTry)
@@ -314,12 +332,12 @@ Word findBestGuessWord(const WordList &possibleSolutions, const WordList &wordsT
             //     std::cout << guess << ", " << solution << ", " << cnt << std::endl;
             // }
         }
-        double score = (double)sumRemainingSolutionCnt / (double)sumCnt;
-        // double score = maxRemainingSolutionCnt;
+        // double score = (double)sumRemainingSolutionCnt / (double)sumCnt;
+        double score = maxRemainingSolutionCnt;
         if(score < bestAvgRemainingSolutionCnt)
         {
             //if count is low then require the guess be a solution
-            if(score > 5 || possibleSolutions.contains(guess))
+            //if(score > 1 || possibleSolutions.contains(guess))
             {
                 bestAvgRemainingSolutionCnt = score;
                 bestGuess = guess;
@@ -340,7 +358,8 @@ WordList findBestFirst2GuessWords(const WordList &possibleSolutions, const WordL
 {
     double bestAvgRemainingSolutionCnt = std::numeric_limits<double>::max();
     WordList bestGuesses;
-    for(auto && guess1 : wordsToTry)
+    //for(auto && guess1 : wordsToTry)
+    auto guess1 = Word("aesir");
     {
         for(auto && guess2 : wordsToTry)
         {
@@ -385,8 +404,8 @@ WordList findBestFirst2GuessWords(const WordList &possibleSolutions, const WordL
 
 void assistant()
 {
-    auto bestFirstWord = Word("roate");
-    // auto bestFirstWord = Word("aesir");
+    // auto bestFirstWord = Word("roate");
+    auto bestFirstWord = Word("aesir");
     auto words = readWords("words.txt");
     auto solutions = readWords("solutions.txt");
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
@@ -459,16 +478,39 @@ void findBestFirst2Words()
 }
 
 
-void testCalcMatchResults()
+void test()
 {
-    std::cout << calcMatchResults("awful", "cabal") << std::endl;
+    //std::cout << calcMatchResults("awful", "cabal") << std::endl;
+    WordList solutions = std::vector<Word>{"batty", "catty", "patty", "fatty"};
+    WordList words = std::vector<Word>{"batty", "catty", "patty", "fatty", "bcpfx"};
+    auto guess = findBestGuessWord(solutions, words, true);
+    std::cout << "guess=" << guess << std::endl;
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    // assistant();
-    // testCalcMatchResults();
-    findBestFirstWord();
-    // findBestFirst2Words();
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help",                 "produce help message")
+        ("assistant",            "run play assistant")
+        ("test",                 "test")
+        ("find-best-first-word", "find best first word")
+        ("find-best-first-two-words", "find best first two words")
+    ;
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    //po::store(po::command_line_parser(argc, argv). options(desc).positional(p).run(), vm);
+    po::notify(vm);
+
+    if (vm.count("help") || argc == 1) {
+        std::cout << desc << std::endl;
+        return 1;
+    }
+
+    if     (vm.count("assistant")) { assistant(); }
+    else if(vm.count("test")) { test(); }
+    else if(vm.count("find-best-first-word")) { findBestFirstWord(); }
+    else if(vm.count("find-best-first-two-words")) { findBestFirst2Words(); }
     return 0;
 }
