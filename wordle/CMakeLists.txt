@@ -18,8 +18,8 @@ include_directories(${Boost_INCLUDE_DIR})
 add_executable(optimizer optimizer.cpp)
 target_link_libraries(optimizer ${Boost_LIBRARIES})
 
-add_executable(screen_read_tester screen_read_tester.cpp)
-target_link_libraries(screen_read_tester ${Boost_LIBRARIES} X11)
+# add_executable(screen_read_tester screen_read_tester.cpp)
+# target_link_libraries(screen_read_tester ${Boost_LIBRARIES} X11)
 
 
 
