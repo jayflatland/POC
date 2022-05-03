@@ -13,7 +13,11 @@
 # This can potentially be a useful gauge of the capapility of neural nets.
 #
 # RESULTS:
-#
+# Terrible!  Doesn't converge.  Can't find any structure that does well.
+# Feed forward networks can only seem to memorize.
+# 
+# Online searches suggest RNN is ideal.  Interesting.  This is a computation
+# problem, not a recognition problem.
 #
 ###############################################################################
 
@@ -66,28 +70,31 @@ y = torch.tensor(y).to(torch.float)
 
 # %%
 model = torch.nn.Sequential(
-    torch.nn.Linear(BW * 2, 256),
+    torch.nn.Linear(BW * 2, 1024),
     #torch.nn.Tanh(),
     torch.nn.ReLU(),
-    torch.nn.Linear(256, 256),
-    torch.nn.ReLU(),
-    torch.nn.Linear(256, BW + 1),
+    torch.nn.Linear(1024, BW + 1),
+    #torch.nn.Softmax(BW+1),
     #torch.nn.Tanh(),
     #torch.nn.ReLU(),
     torch.nn.Sigmoid(),
 )
 
+#model = torch.nn.RNN(BW * 2, BW + 1)
+#model(x)
+
 t = 0
 # %%
 loss_fn = torch.nn.MSELoss(reduction='sum')
 learning_rate = 1e-3
-optimizer = torch.optim.RMSprop(model.parameters(), lr=learning_rate)
+#optimizer = torch.optim.RMSprop(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 while True:
     t += 1
     y_pred = model(x)
     loss = loss_fn(y_pred, y)
-    #if t % 100 == 0:
-    print(t, loss.item())
+    if 1:#t % 100 == 0:
+        print(t, loss.item())
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -106,11 +113,11 @@ def nnAdd(a, b):
     return r
 
 #for i in range(10):
-for a in range(0, 10, 3):
-  for b in range(0, 10, 3):
+for a in range(10):
+  for b in range(10):
     # a = random.randint(0, (1<<BW)-1)
     # b = random.randint(0, (1<<BW)-1)
     c = a + b
     c_est = nnAdd(a, a)
-    print(a, b, c, c_est)
+    print(a, b, c, c_est, c == c_est)
 # == torch.tensor(binvecC(255+255)).to(torch.float))
