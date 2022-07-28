@@ -12,6 +12,18 @@ namespace po = boost::program_options;
 Best words: {aesir, cloth, boing}
 */
 
+// #define GUESS_LIST      "words.txt"
+// #define SOLUTIONS_LIST  "solutions.txt"
+// #define BEST_FIRST_GUESS "aesir"
+
+#define GUESS_LIST      "corncob_lowercase.txt"
+#define SOLUTIONS_LIST  "corncob_lowercase.txt"
+#define BEST_FIRST_GUESS "serai"
+
+// #define GUESS_LIST      "dwyl_alpha_words.txt"
+// #define SOLUTIONS_LIST  "dwyl_alpha_words.txt"
+// #define BEST_FIRST_GUESS "abase"
+
 enum class Color : uint8_t
 {
     Gray,
@@ -118,7 +130,15 @@ WordList readWords(const std::string &filename)
     {
         std::string s;
         std::getline(file, s);
-        words.push_back(s);
+        if(s.size() > 0)
+        {
+            s.resize(s.size() - 1); //strip whitespace
+        }
+
+        if(s.size() == 5)
+        {
+            words.push_back(s);
+        }
     }
 
     return words;
@@ -415,15 +435,12 @@ WordList findBestFirst2GuessWords(const WordList &possibleSolutions, const WordL
 
 void assistant()
 {
-    // auto bestFirstWord = Word("roate");
-    auto bestFirstWord = Word("aesir");
-    auto words = readWords("words.txt");
-    auto solutions = readWords("solutions.txt");
+    auto bestFirstWord = Word(BEST_FIRST_GUESS);
+    auto words = readWords(GUESS_LIST);
+    auto solutions = readWords(SOLUTIONS_LIST);
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
 
     std::vector<MatchResults> guessesAndResults;
-
-    //best first guess: soare?  roate?  aesir?
 
     std::cout << "Best first word is '" << bestFirstWord << "'" << std::endl;
 
@@ -467,15 +484,12 @@ void assistant()
 
 void autoplay()
 {
-    // auto bestFirstWord = Word("roate");
-    auto bestFirstWord = Word("aesir");
-    auto words = readWords("words.txt");
-    auto solutions = readWords("solutions.txt");
+    auto bestFirstWord = Word(BEST_FIRST_GUESS);
+    auto words = readWords(GUESS_LIST);
+    auto solutions = readWords(SOLUTIONS_LIST);
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
 
     std::vector<MatchResults> guessesAndResults;
-
-    //best first guess: soare?  roate?  aesir?
 
     std::cout << "Best first word is '" << bestFirstWord << "'" << std::endl;
 
@@ -519,8 +533,8 @@ void autoplay()
 
 void findBestFirstWord()
 {
-    auto words = readWords("words.txt");
-    auto solutions = readWords("solutions.txt");
+    auto words = readWords(GUESS_LIST);
+    auto solutions = readWords(SOLUTIONS_LIST);
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
 
     std::cout << "Checking " << words.size() << " words for best guess word to reduce " << solutions.size() << " possible solutions" << std::endl;
@@ -531,8 +545,8 @@ void findBestFirstWord()
 
 void findBestFirst2Words()
 {
-    auto words = readWords("words.txt");
-    auto solutions = readWords("solutions.txt");
+    auto words = readWords(GUESS_LIST);
+    auto solutions = readWords(SOLUTIONS_LIST);
     std::cout << words.size() << " words, " << solutions.size() << " solutions" << std::endl;
 
     std::cout << "Checking " << words.size() << " words for best guess word to reduce " << solutions.size() << " possible solutions" << std::endl;
@@ -544,10 +558,13 @@ void findBestFirst2Words()
 void test()
 {
     //std::cout << calcMatchResults("awful", "cabal") << std::endl;
-    WordList solutions = std::vector<Word>{"batty", "catty", "patty", "fatty"};
-    WordList words = std::vector<Word>{"batty", "catty", "patty", "fatty", "bcpfx"};
-    auto guess = findBestGuessWord(solutions, words, true);
-    std::cout << "guess=" << guess << std::endl;
+    // WordList solutions = std::vector<Word>{"batty", "catty", "patty", "fatty"};
+    // WordList words = std::vector<Word>{"batty", "catty", "patty", "fatty", "bcpfx"};
+    // auto guess = findBestGuessWord(solutions, words, true);
+    // std::cout << "guess=" << guess << std::endl;
+
+    auto words = readWords("corncob_lowercase.txt");
+    std::cout << words.size() << std::endl;
 }
 
 int main(int argc, char **argv)
