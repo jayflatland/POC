@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Buy Sell Game</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" integrity="sha256-+8RZJua0aEWg+QVVKg4LEzEEm/8RFez5Tb4JBNiV5xA=" crossorigin="anonymous"></script>
+    <style>
+        #chart-wrapper {
+          display: inline-block;
+          position: relative;
+          width: 900px;
+        }
+        button {
+            width: 100px;
+            height: 40px;
+        }
+      </style>
+</head>
+<body>
+
+<div style="display: flex;">
+<div id="chart-wrapper">
+    <canvas id="myChart" width="400" height="400"></canvas>
+</div>
+<div>
+<div><button onclick="go_short();">Short</button></div>
+<div><button onclick="go_neutral();">Neutral</button></div>
+<div><button onclick="go_long();">Long</button></div>
+<h1>Position: <span id="position"></span></h1>
+<h1>Profit: <span id="profit"></span></h1>
+</div>
+</div>
+<script>
+
+var times = [];
+var prices = [];
+const ctx = document.getElementById('myChart').getContext('2d');
+
+const labels = times;
+const data = {
+  labels: labels,
+  datasets: [{
+    label: 'Price',
+    data: prices,
+    fill: false,
+    borderColor: 'rgb(75, 192, 192)',
+    tension: 0.1
+  }]
+};
+
+const config = {
+  type: 'line',
+  data: data,
+  options: {
+    scales: {
+        x: {
+            ticks: {
+                display: false,
+                maxTicksLimit: 0
+            }
+        }
+    },
+    animation: false,
+    animations: {
+        colors: false,
+        x: false
+    },
+    transitions: {
+        active: {
+            animation: {
+                duration: 0
+            }
+        }
+    },
+    pointRadius: 0
+}
+};
+
+var price = 1000.0;
+var time = 0;
+var myChart = new Chart(ctx, config);
+
+myChart.resize(600, 600);
+
+
+var position = 0;
+var balance = 0.0;
+var profit = 0.0;
+
+function trade_to_position(target_position)
+{
+    // console.log(`trade_to_position(${target_position})`);
+    balance -= price * (target_position - position);
+    position = target_position;
+}
+
+function go_long()
+{
+    trade_to_position(1);
+}
+
+function go_short()
+{
+    trade_to_position(-1);
+}
+
+function go_neutral()
+{
+    trade_to_position(0);
+}
+
+function adjust_price()
+{
+    let max_len = 3000;
+    for(i = 0; i < 3; i++)
+    {
+        do
+        {
+            if(Math.random() > 0.5)
+            {
+                price += 0.01;
+            }
+            else
+            {
+                price -= 0.01;
+            }
+            time += 1;
+            prices.push(price);
+            times.push(time);
+
+            if(prices.length > max_len)
+            {
+                prices.shift();
+                times.pop();
+            }
+        }
+        while(prices.length < max_len);
+    }
+
+    profit = balance + position * price;
+    document.getElementById("position").innerHTML = position;
+    document.getElementById("profit").innerHTML = profit.toFixed(2);
+    // console.log(position, balance, profit);
+}
+
+function update_chart()
+{
+    myChart.update();
+}
+
+document.onkeydown = function (event) {
+    switch (event.keyCode) {
+        case 37:
+        go_neutral();
+        break;
+        case 38:
+        go_long();
+        break;
+        case 39:
+        go_neutral();
+        break;
+        case 40:
+        go_short();
+        break;
+    }
+};
+
+setInterval(adjust_price, 30);
+setInterval(update_chart, 30);
+
+</script>
+
+</body>
+</html>
