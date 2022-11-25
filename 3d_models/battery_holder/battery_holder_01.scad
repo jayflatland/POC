@@ -1,16 +1,16 @@
 //aa sizes = 14.0, 14.33, 14.25
 aa_d = 14.3 + 0.1;
 aaa_d = 10.3 + 0.1;
-cell_d = aaa_d;
+cell_d = aa_d;
 
 rows = 2;
 cols = 2;
 
-wall_d = 1;
+wall_d = 0.5;
 
 base_w = cols * (cell_d + wall_d) + wall_d;
 base_l = rows * (cell_d + wall_d) + wall_d;
-base_h = 20;
+base_h = 15;
 
 render(convexity = 2)
 
