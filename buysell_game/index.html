@@ -19,7 +19,7 @@
       </style>
 </head>
 <body>
-
+<h1><a href=index.html>Buy Sell Game</a></h1>
 <div style="display: flex;">
 <div id="chart-wrapper">
     <canvas id="myChart" width="400" height="400"></canvas>
@@ -36,6 +36,7 @@
 
 var times = [];
 var prices = [];
+var dprices = [];
 const ctx = document.getElementById('myChart').getContext('2d');
 
 const labels = times;
@@ -118,22 +119,33 @@ function adjust_price()
     {
         do
         {
+            var dprice;
             if(Math.random() > 0.5)
             {
-                price += 0.01;
+                dprice = 0.01;
             }
             else
             {
-                price -= 0.01;
+                dprice = -0.01;
             }
+            if(dprices.length > 0)
+            {
+                var h = dprices.slice(dprices.length - 10);
+                var sum = h.reduce((a, b) => a + b);
+                var avg = sum / h.length;
+                // dprice += avg * 0.9999;
+                // console.log(sum);
+            }
+            price += dprice;
             time += 1;
             prices.push(price);
             times.push(time);
-
+            dprices.push(dprice);
             if(prices.length > max_len)
             {
                 prices.shift();
-                times.pop();
+                times.shift();
+                dprices.shift();
             }
         }
         while(prices.length < max_len);
