@@ -6,12 +6,12 @@
 
 using mask_type = std::vector<bool>;
 
-inline mask_type operator&(const mask_type& m1, const mask_type& m2)
+inline mask_type operator&(const mask_type &m1, const mask_type &m2)
 {
     mask_type r;
     assert(m1.size() == m2.size());
     r.resize(m1.size());
-    for(int i = 0; i < m1.size(); i++)
+    for (int i = 0; i < m1.size(); i++)
     {
         r[i] = m1[i] && m2[i];
     }
@@ -30,10 +30,9 @@ inline mask_type operator&(const mask_type& m1, const mask_type& m2)
 //     }
 
 // private:
-//     //max size of 
+//     //max size of
 //     std::array<uint8_t, N/8> d_;
 // };
-
 
 mask_type full_mask(size_t n)
 {

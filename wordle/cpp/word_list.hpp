@@ -63,4 +63,3 @@ word_list_type read_5_letter_words(const std::string &filename)
 
     return words;
 }
-

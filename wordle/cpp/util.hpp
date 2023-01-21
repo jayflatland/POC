@@ -4,7 +4,7 @@
 #include "mask.hpp"
 #include "match_result.hpp"
 
-match_results_type calc_match_results(const word_type &solution, const word_type &guess)
+inline match_results_type calc_match_results(const word_type &solution, const word_type &guess)
 {
     auto results = match_results_type();
     word_type solution_copy = solution;
@@ -46,7 +46,7 @@ match_results_type calc_match_results(const word_type &solution, const word_type
     return results;
 }
 
-word_list_type find_solutions_that_match(const match_results_type &match_results, const word_list_type &possible_solutions)
+inline word_list_type find_solutions_that_match(const match_results_type &match_results, const word_list_type &possible_solutions)
 {
     word_list_type remaining_solutions;
     for (auto &&test_solution : possible_solutions)
@@ -60,7 +60,7 @@ word_list_type find_solutions_that_match(const match_results_type &match_results
     return remaining_solutions;
 }
 
-bool solution_is_possible_for_match_results(const word_type &solution, const match_results_type &match_results)
+inline bool solution_is_possible_for_match_results(const word_type &solution, const match_results_type &match_results)
 {
     auto test_results = calc_match_results(solution, match_results.guess());
     return test_results == match_results;
@@ -68,7 +68,7 @@ bool solution_is_possible_for_match_results(const word_type &solution, const mat
     // return true;
 }
 
-int count_solutions_that_match(const match_results_type &match_results, const word_list_type &possible_solutions)
+inline int count_solutions_that_match(const match_results_type &match_results, const word_list_type &possible_solutions)
 {
     int cnt = 0;
     for (auto &&test_solution : possible_solutions)
@@ -80,4 +80,3 @@ int count_solutions_that_match(const match_results_type &match_results, const wo
     }
     return cnt;
 }
-
