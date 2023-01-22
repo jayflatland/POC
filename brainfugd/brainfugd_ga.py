@@ -1,9 +1,9 @@
 
 import time
 import random
-import numba
+#import numba
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def run_program(prog):
     output = []
     mem = [0, 0, 0, 0, 0, 0]
@@ -55,18 +55,18 @@ def score_output(output, prog):
 
     # Goal COIN - [3, 15, 9, 14]
     if len(output) > 0:
-        score += 100 - (output[0] - 3)**2
+        score += max(0, 10 - (output[0] - 3)**2)
     if len(output) > 1:
-        score += 100 - (output[1] - 15)**2
+        score += max(0, 10 - (output[1] - 15)**2)
     if len(output) > 2:
         score += 100 - (output[2] - 9)**2
-    if len(output) > 3:
-        score += 100 - (output[3] - 14)**2
+    # if len(output) > 3:
+    #     score += 100 - (output[3] - 14)**2
     if len(output) > 4:
         score -= len(output) - 4
-    score -= len(prog) * 0.01
-    score += prog.count("[") * 0.003
-    score += prog.count("]") * 0.003
+    score -= len(prog) * 0.9
+    #score += prog.count("[") * 0.003
+    #score += prog.count("]") * 0.003
     # score += prog.count("<")
     # score += prog.count(">")
 
