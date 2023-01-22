@@ -3,7 +3,9 @@ import time
 import random
 #import numba
 
-#@numba.jit(nopython=True)
+codes = ".[]<>+-"
+
+@numba.jit(nopython=True)
 def run_program(prog):
     output = []
     mem = [0, 0, 0, 0, 0, 0]
@@ -13,10 +15,14 @@ def run_program(prog):
     cnt = 0
     while cnt < 1000:
         cnt += 1
-        if pc >= min(25, len(prog)):
+        #if pc >= min(25, len(prog)):
+        if pc >= len(prog):
             #raise Exception("End of program met without 'e' end instruction")
             break
         c = prog[pc]
+        if not c in codes:
+            pc += 1
+            continue
         #print(f"DEBUG: c={c}, mem={mem}, addr={addr}, pc={pc}, stack={stack}")
         if c == '.':
             output.append(mem[addr])
@@ -46,7 +52,7 @@ def run_program(prog):
         elif c == 'e':
             break
         pc += 1
-    return output
+    return output#, mem, addr
 
 
 #@numba.jit(nopython=True)
@@ -89,7 +95,7 @@ def breed_programs(parents):
     codes = ".[]<>+-"
 
     #mutation_cnt = random.randint(1, 4) * random.randint(1, 4)
-    mutation_cnt = random.randint(1, 50)
+    mutation_cnt = random.randint(1, 200)
 
     for i in range(mutation_cnt):
         prog_empty = len(prog) == 0
@@ -108,13 +114,14 @@ def breed_programs(parents):
 
 
 #@numba.jit(nopython=True)
-if 1:#def run_genetic_algorithm():
-    seed_population = [""]
+if 0:#def run_genetic_algorithm():
+    seed_population = ["+++[>+>+++>+++++<<<-]>.>>.<.>-."]
     
-    full_population_size = 1000
-    selected_population_size = 100
+    full_population_size = 10
+    selected_population_size = 3
 
     last_report_time = 0.0
+    last_report_gen = 0
     generation = 0
     while True:
         generation += 1
@@ -149,12 +156,33 @@ if 1:#def run_genetic_algorithm():
         # report
         now = time.time()
         if now - last_report_time > 1.0:
+            dt = now - last_report_time
+            d_gens = generation - last_report_gen
+            last_report_gen = generation
+            gen_rate = d_gens / dt
+            test_rate = gen_rate * len(population)
             last_report_time = now
             best_prog = seed_population[0]
             best_output = run_program(best_prog)
-            print(f'Gen[{generation: 4d}] Scores: {top_scores[0]:5.1f} Output: {best_output} Prog: ({len(best_prog)}) "{best_prog}"')
+            print(f'Gen[{generation: 4d}, {test_rate:.0f}/s] Scores: {top_scores[0]:5.1f} Output: {best_output} Prog: ({len(best_prog)}) "{best_prog}"')
 
-        
+@numba.jit(nopython=True)
+def run_exhaustive_search(prog):
+    target_output = [3, 15]#, 15, 9, 14]
+    winners = []
+    if len(prog) < 9:
+        for c in codes:
+            winners += run_exhaustive_search(prog + c)
+    output = run_program(prog)
+    if output == target_output:
+        winners.append(prog)
+    return winners
+    #output = score_program("+++[>+>+++>+++++<<<-]>.>>.<.>-.")
+
+winners = run_exhaustive_search("")
+print(winners)
+
+#print(run_program("+++[>+>+++>+++++<<<-]>.>>.<.>-."))
 #run_genetic_algorithm()
 # # %%
 # prog = "+++.+++++++."
@@ -163,3 +191,4 @@ if 1:#def run_genetic_algorithm():
 # score = score_output(output)
 # print(f'"{prog}", {output}, {score}')
 
+#[3, 15, 9, 14]
