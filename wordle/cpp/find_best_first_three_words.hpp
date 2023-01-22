@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <unordered_map>
 
 #include "pair_hash.hpp"
 #include "word.hpp"
@@ -19,14 +20,21 @@ struct results_type
 
     double avg() const { return (double)counts_sum_ / (double)counts_cnt_; }
 
-    double score() const
+    void clear()
+    {
+        worst_count_ = 0;
+        counts_sum_ = 0;
+        counts_cnt_ = 0;
+    }
+
+    double loss() const
     {
         if (counts_cnt_ == 0)
         {
-            return -9999999;
+            return 9999999;
         }
         // return -avg();
-        return -(double)worst_count_;
+        return worst_count_;
     }
 
     template <typename StreamT>
@@ -35,7 +43,7 @@ struct results_type
         os << "guess_words: {" << r.w1_ << ", " << r.w2_ << ", " << r.w3_ << "}";
         os << " worst: " << r.worst_solution_ << " (" << r.worst_count_ << ")";
         os << " avg:" << r.avg();
-        os << " score: " << r.score();
+        os << " loss: " << r.loss();
         return os;
     }
 };
@@ -89,115 +97,139 @@ inline void mask_solutions_that_match(const match_results_type &match_results, c
 {
     word_list_type remaining_solutions;
     assert(words.size() == mask.size());
-    for (int i = 0; i < words.size(); i++)
+    // for (int i = 0; i < words.size(); i++)
+    int i = 0;
+    for (auto &&w : words)
     {
         if (!mask[i])
         {
+            i++;
             continue;
         }
 
-        auto test_results = quick_calc_match_results(words[i], match_results.guess());
+        auto test_results = quick_calc_match_results(w, match_results.guess());
         if (test_results != match_results)
         {
             mask[i] = false;
         }
+        i++;
     }
+}
+
+inline results_type find_best(const word_list_type &words, const results_type &start_result, int idx)
+{
+    results_type best = start_result;
+    // for (auto &&w : words)
+    auto &&w = words[::rand() % words.size()];
+    {
+        std::cout << "w=" << w << std::endl;
+        results_type r = best;
+        r.clear();
+        switch (idx)
+        {
+        case 1:
+            r.w1_ = w;
+            break;
+        case 2:
+            r.w2_ = w;
+            break;
+        case 3:
+            r.w3_ = w;
+            break;
+        default:
+            assert(false);
+            break;
+        }
+
+        for (auto &&solution : words)
+        {
+            std::cout << "w=" << w << ", s=" << solution << std::endl;
+            mask_type mask = full_mask(words.size());
+            mask_solutions_that_match(quick_calc_match_results(solution, r.w1_), words, mask);
+            mask_solutions_that_match(quick_calc_match_results(solution, r.w2_), words, mask);
+            mask_solutions_that_match(quick_calc_match_results(solution, r.w3_), words, mask);
+            size_t cnt = std::count_if(mask.begin(), mask.end(), [](auto &&e)
+                                       { return e; });
+            r.counts_sum_ += cnt;
+            r.counts_cnt_++;
+            if (cnt > r.worst_count_)
+            {
+                r.worst_count_ = cnt;
+                r.worst_solution_ = solution;
+            }
+        }
+
+        if (r.loss() < best.loss())
+        {
+            std::cout << idx << ": " << best << std::endl;
+            best = r;
+        }
+    }
+    return best;
 }
 
 inline void find_best_first_three_words()
 {
-    // auto words = read_5_letter_words("wordle_words.txt");
+    /*=========================================================================
+    Strategy:
+    For each solution, a set of guess words will produce a set of possible
+    solutions.  We want to know the guess words that produce the smallest max
+    number of possible solutions.
+
+    The primary problem is that for a given guess set G, I need to try every
+    solution, and for every solution, I need to try every word.  So there's a
+    tough N^2 problem in there.
+
+    For each solution, I need to compute a match result set M, and then need
+    to see for each word how many words fit that match set.
+
+    def compute_loss(guess_words):
+        max_loss = 0
+        for s in words:
+            match_set = calc_match_results(guess_words, s)
+            loss = 0
+            for w in words:
+                M2 = calc_match_results(guess_words, w)
+                if match_set == M2:
+                    loss += 1
+            max_loss = max(max_loss, loss)
+
+    How can I speed that up?
+
+    Are any calculations cacheable?
+    =========================================================================*/
+
+    auto words = read_5_letter_words("wordle_words.txt");
     // auto words = read_5_letter_words("wordle_solutions.txt");
     // auto words = read_5_letter_words("corncob_lowercase.txt");
     // auto words = read_5_letter_words("dwyl_alpha_words.txt");
     // auto words = read_5_letter_words("sample_100_words.txt");
-    auto words = read_5_letter_words("sample_1000_words.txt");
+    // auto words = read_5_letter_words("sample_1000_words.txt");
 
     std::cout << words.size() << " words" << std::endl;
 
-    /*=========================================================================
-    Strategy:
-    For each solution, a set of guess words will produce a set of possible
-    solutions.  We want to know the guess words that produce the most balanced
-    set of
-    =========================================================================*/
-    // pre-compute word/solution masks
-    // std::cout << "pre-compute word/solution masks" << std::endl;
-    // std::unordered_map<std::pair<word_type, word_type>, mask_type> mask_cache;
+    // std::unordered_map<std::pair<word_type, word_type>, mask_type> word_solution_to_mask_cache;
     // for (auto &&w : words)
     // {
-    //     for (auto &&solution : words)
+    //     std::cout << "w=" << w << std::endl;
+    //     for (auto &&s : words)
     //     {
+    //         // std::cout << "w=" << w << ", s=" << s << std::endl;
     //         mask_type mask = full_mask(words.size());
-    //         mask_solutions_that_match(quick_calc_match_results(solution, w), words, mask);
-    //         mask_cache[std::make_pair(solution, w)] = mask;
+    //         mask_solutions_that_match(quick_calc_match_results(s, w), words, mask);
+    //         word_solution_to_mask_cache[std::make_pair(w, s)] = mask;
     //     }
-    //     std::cout << w << " done" << std::endl;
     // }
 
-    size_t total_combos_to_test = words.size() * (words.size() - 1) * (words.size() - 2);
-    std::cout << "total_combos_to_test=" << fmt::format(std::locale("en_US.UTF-8"), "{:L}", total_combos_to_test) << std::endl;
+    // results_type best;
+    // best.w1_ = words.front();
+    // best.w2_ = words.front();
+    // best.w3_ = words.front();
 
-    size_t combos_tested = 0;
-    std::chrono::time_point start_time = std::chrono::system_clock::now();
-    results_type best;
-    for (auto it1 = words.begin(); it1 != words.end(); it1++)
-    {
-        auto &&w1 = *it1;
-        for (auto it2 = it1 + 1; it2 != words.end(); it2++)
-        {
-            auto &&w2 = *it2;
-            for (auto it3 = it2 + 1; it3 != words.end(); it3++)
-            {
-                auto &&w3 = *it3;
-                results_type r;
-                r.w1_ = w1;
-                r.w2_ = w2;
-                r.w3_ = w3;
-                for (auto &&solution : words)
-                {
-                    mask_type mask = full_mask(words.size());
-                    mask_solutions_that_match(quick_calc_match_results(solution, w1), words, mask);
-                    mask_solutions_that_match(quick_calc_match_results(solution, w2), words, mask);
-                    mask_solutions_that_match(quick_calc_match_results(solution, w3), words, mask);
-
-                    // auto &&m1 = mask_cache[std::make_pair(solution, w1)];
-                    // auto &&m2 = mask_cache[std::make_pair(solution, w2)];
-                    // auto &&m3 = mask_cache[std::make_pair(solution, w3)];
-                    // auto mask = m1 & m2 & m3;
-
-                    size_t cnt = std::count_if(mask.begin(), mask.end(), [](auto &&e)
-                                               { return e; });
-
-                    r.counts_sum_ += cnt;
-                    r.counts_cnt_++;
-                    if (cnt > r.worst_count_)
-                    {
-                        r.worst_count_ = cnt;
-                        r.worst_solution_ = solution;
-                    }
-                }
-
-                if (r.score() > best.score())
-                {
-                    best = r;
-                }
-                combos_tested++;
-                std::chrono::time_point now = std::chrono::system_clock::now();
-                auto elapsed = now - start_time;
-                auto avg_elapsed_per = elapsed / combos_tested;
-                size_t remaining_combos_to_test = total_combos_to_test - combos_tested;
-                auto est_time_remaining = remaining_combos_to_test * avg_elapsed_per;
-                auto est_finish_time = now + est_time_remaining;
-                std::cout << "est_finish_time = "
-                          << fmt::format("{:%Y-%m-%d %H:%M:%S}", est_finish_time)
-                          << " (" << std::chrono::duration_cast<std::chrono::microseconds>(avg_elapsed_per).count() * 0.001 << "ms)"
-                          << " (" << std::chrono::duration_cast<std::chrono::hours>(est_time_remaining).count() / 24.0 << " days)"
-                          << std::endl;
-                std::cout << "    this: " << r << std::endl;
-                std::cout << "    best: " << best << std::endl;
-                std::cout << std::endl;
-            }
-        }
-    }
+    // while(true)
+    // {
+    //     best = find_best(words, best, 1);
+    //     best = find_best(words, best, 2);
+    //     best = find_best(words, best, 3);
+    // }
 }

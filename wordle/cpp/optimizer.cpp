@@ -39,7 +39,7 @@ inline word_type find_best_guess_word(const word_list_type &possible_solutions, 
 {
     if (possible_solutions.size() == 1)
     {
-        return possible_solutions[0];
+        return possible_solutions.front();
     }
 
     double best_avg_remaining_solution_cnt = std::numeric_limits<double>::max();

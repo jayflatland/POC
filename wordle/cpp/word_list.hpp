@@ -3,12 +3,13 @@
 #include "word.hpp"
 #include <fstream>
 #include <vector>
+#include <list>
 
 class word_list_type : public std::vector<word_type>
 {
 public:
     word_list_type() {}
-    word_list_type(const std::vector<word_type> &&wl) : std::vector<word_type>(wl) {}
+    // word_list_type(const std::vector<word_type> &&wl) : std::vector<word_type>(wl) {}
 
     bool contains(const word_type &word) const
     {

@@ -21,17 +21,17 @@ public:
         std::copy(s.c_str(), s.c_str() + 5, this->begin());
     }
 
-    uint64_t hash() const
+    uint32_t hash() const
     {
-        uint64_t h = 0;
+        uint32_t h = 0;
         for (auto &&c : *this)
         {
-            h = (h * 26) + (uint64_t)(c - 'a');
+            h = (h * 26) + (uint32_t)(c - 'a');
         }
         return h;
     }
 
-    static constexpr uint64_t max_hash() { return 11881376; /*26**5*/ }
+    static constexpr uint32_t max_hash() { return 11881376; /*26**5*/ }
 
     bool contains(char c) const
     {
