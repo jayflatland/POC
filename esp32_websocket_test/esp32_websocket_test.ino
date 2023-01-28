@@ -91,6 +91,11 @@ void setup()
 
     // Connect to Wi-Fi
     WiFi.begin(ssid, password);
+
+    //Trying static IP, is PITA
+    // IPAddress addr;
+    // addr.fromString("10.1.10.24");
+    // WiFi.config(addr);
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(1000);
