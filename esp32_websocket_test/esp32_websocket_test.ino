@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebSrv.h>
-
+#include <sstream>
 #include "index_html.hpp"
 #include "powerhawk.hpp"
 
@@ -155,7 +155,20 @@ void loop()
     powerhawk_monitor.loop();
     if (powerhawk_monitor.report)
     {
-        powerhawk_websocket_handler.textAll("data!!");
+        std::stringstream ss;
+        ss << "{ \"samples\":[";
+        
+        for(int i = 0; i < powerhawk_monitor.HIST_CNT; i++)
+        {
+            if(i > 0) {
+                ss << ',';
+            }
+            ss << powerhawk_monitor.in1_hist[i];
+        }
+        ss << "]}";
+        
+        auto s = ss.str();
+        powerhawk_websocket_handler.textAll(s.data(), s.size());
     }
 
     digitalWrite(ledPin, ledState);

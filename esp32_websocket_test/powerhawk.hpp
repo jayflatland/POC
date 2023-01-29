@@ -31,15 +31,21 @@ namespace powerhawk
 
         int hist_idx = 0;
 
-        long in1_sq_hist[HIST_CNT];
-        long in2_sq_hist[HIST_CNT];
-        long in3_sq_hist[HIST_CNT];
-        long in4_sq_hist[HIST_CNT];
+        long ref_hist[HIST_CNT];
+        long in1_hist[HIST_CNT];
+        long in2_hist[HIST_CNT];
+        long in3_hist[HIST_CNT];
+        long in4_hist[HIST_CNT];
 
-        long in1_sq_sum = 0;
-        long in2_sq_sum = 0;
-        long in3_sq_sum = 0;
-        long in4_sq_sum = 0;
+        // long in1_sq_hist[HIST_CNT];
+        // long in2_sq_hist[HIST_CNT];
+        // long in3_sq_hist[HIST_CNT];
+        // long in4_sq_hist[HIST_CNT];
+
+        // long in1_sq_sum = 0;
+        // long in2_sq_sum = 0;
+        // long in3_sq_sum = 0;
+        // long in4_sq_sum = 0;
 
         // WiFiUDP Udp;
 
@@ -47,10 +53,11 @@ namespace powerhawk
         {
             for (int i = 0; i < HIST_CNT; i++)
             {
-                in1_sq_hist[i] = 0;
-                in2_sq_hist[i] = 0;
-                in3_sq_hist[i] = 0;
-                in4_sq_hist[i] = 0;
+                ref_hist[i] = 0;
+                in1_hist[i] = 0;
+                in2_hist[i] = 0;
+                in3_hist[i] = 0;
+                in4_hist[i] = 0;
             }
 
             pinMode(ref_pin, INPUT);
@@ -83,20 +90,26 @@ namespace powerhawk
             long in3 = (long)(analogRead(in3_pin) - ref);
             long in4 = (long)(analogRead(in4_pin) - ref);
 
-            long in1_sq = in1 * in1;
-            long in2_sq = in2 * in2;
-            long in3_sq = in3 * in3;
-            long in4_sq = in4 * in4;
+            ref_hist[hist_idx] = ref;
+            in1_hist[hist_idx] = in1;
+            in2_hist[hist_idx] = in2;
+            in3_hist[hist_idx] = in3;
+            in4_hist[hist_idx] = in4;
 
-            in1_sq_sum += in1_sq - in1_sq_hist[hist_idx];
-            in2_sq_sum += in2_sq - in2_sq_hist[hist_idx];
-            in3_sq_sum += in3_sq - in3_sq_hist[hist_idx];
-            in4_sq_sum += in4_sq - in4_sq_hist[hist_idx];
+            // long in1_sq = in1 * in1;
+            // long in2_sq = in2 * in2;
+            // long in3_sq = in3 * in3;
+            // long in4_sq = in4 * in4;
 
-            in1_sq_hist[hist_idx] = in1_sq;
-            in2_sq_hist[hist_idx] = in2_sq;
-            in3_sq_hist[hist_idx] = in3_sq;
-            in4_sq_hist[hist_idx] = in4_sq;
+            // in1_sq_sum += in1_sq - in1_sq_hist[hist_idx];
+            // in2_sq_sum += in2_sq - in2_sq_hist[hist_idx];
+            // in3_sq_sum += in3_sq - in3_sq_hist[hist_idx];
+            // in4_sq_sum += in4_sq - in4_sq_hist[hist_idx];
+
+            // in1_sq_hist[hist_idx] = in1_sq;
+            // in2_sq_hist[hist_idx] = in2_sq;
+            // in3_sq_hist[hist_idx] = in3_sq;
+            // in4_sq_hist[hist_idx] = in4_sq;
 
             hist_idx = (hist_idx + 1) % HIST_CNT;
             if(hist_idx == 0)
