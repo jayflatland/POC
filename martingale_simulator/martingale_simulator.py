@@ -16,7 +16,8 @@ def run_a_bet(wager):
 trials = []
 
 bets_per_trial = 1000
-num_trials = 100000
+num_trials = 20000
+max_wager = 1e9999#4096
 
 total_balances = []
 trial_final_balances = []
@@ -38,8 +39,8 @@ for trial in range(num_trials):
             wager = last_wager * 2
         else:
             wager = 1
-        #if wager >= 128: wager = 128
-    
+        wager = min(wager, max_wager)
+
         largest_wager = max(largest_wager, wager)
         
         balance -= wager    
