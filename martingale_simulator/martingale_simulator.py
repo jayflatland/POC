@@ -15,22 +15,16 @@ def run_a_bet(wager):
 
 trials = []
 
-bets_per_trial = 1000
-num_trials = 20000
-max_wager = 1e9999#4096
+bets_per_trial = 10000
+num_trials = 20
+max_wager = 4096
 
-total_balances = []
-trial_final_balances = []
+results = []
 for trial in range(num_trials):
     balance = 0
     last_result = 1
     last_wager = 1
     largest_wager = 0
-    i = 0
-    # while True:
-    balances = []
-    largest_wagers = []
-    losing_streaks = []
     losing_streak = 0
     for i in range(bets_per_trial):
         start_balance = balance
@@ -44,31 +38,29 @@ for trial in range(num_trials):
         largest_wager = max(largest_wager, wager)
         
         balance -= wager    
-        result = run_a_bet(wager)
+        outcome = run_a_bet(wager)
     
-        if result == 0:    
+        if outcome == 0:    
             losing_streak += 1
         else:
             losing_streak = 0
     
-        balance += result
+        balance += outcome
         last_wager = wager
-        last_result = result
-        balances.append(balance)
-        largest_wagers.append(largest_wager)
-        losing_streaks.append(losing_streak)
-        total_balances.append(balance)
-        #print(f"{i}: start_balance={start_balance}, balance={balance}, wager={wager}, result={result}, largest_wager={largest_wager}")
-        # if i % 10000 == 0:
-        #     print(balance)
-    trial_final_balances.append(balance)
-    trials.append({
-        "balances": balances,
-        "largest_wagers": largest_wagers,
-        "losing_streaks": losing_streaks,
-    })
+        last_result = outcome
+        results.append({
+            "trial": trial,
+            "i": i,
+            "balance": balance,
+            "starting_balance": start_balance,
+            "balance_change": balance - start_balance,
+            "wager": wager,
+            "losing_streak": losing_streak,
+        })
 
-print(np.array(trial_final_balances).mean() / bets_per_trial)
+df = pd.DataFrame(results)
+
+#df['balance_change'].mean()
 
 # %%
 if 0:
@@ -82,14 +74,14 @@ if 0:
     
     plt.sca(axs.pop(0))
     plt.title("Account Balance")
-    for trial in trials:
-        plt.plot(trial['balances'])
+    for trial, gb in df.groupby('trial'):
+        plt.plot(gb['i'], gb['balance'])
     #plt.plot(largest_wagers)
     
     plt.sca(axs.pop(0))
     plt.title("Losing Streak")
-    for trial in trials:
-        plt.plot(trial['losing_streaks'])
+    for trial, gb in df.groupby('trial'):
+        plt.plot(gb['i'], gb['losing_streak'])
     plt.show()
     
     #plt.legend(loc=2)
