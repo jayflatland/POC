@@ -17,7 +17,7 @@ trials = []
 
 bets_per_trial = 10000
 num_trials = 20
-max_wager = 4096
+max_wager = 1e999#4096
 
 results = []
 for trial in range(num_trials):
@@ -67,7 +67,7 @@ if 0:
     pass
     # %%
     r, c = 2, 1
-    fig, axs = plt.subplots(r, c, figsize=(42, 25), sharex=True)
+    fig, axs = plt.subplots(r, c, figsize=(14, 7), sharex=True)
     if r == 1 and c == 1: axs = [axs]
     elif c == 1:  axs = list(axs)
     else:         axs = [axs[i, j] for j in range(c) for i in range(r)]  # flatten
