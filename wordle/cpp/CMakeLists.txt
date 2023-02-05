@@ -12,7 +12,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-fconcepts -Werror -Wshadow -Wall -Wno-terminate -Wno-sign-compare -Wno-unused-result -Wno-format-truncation -fverbose-asm -Wno-deprecated-declarations -mavx2 -DBOOST_BIND_GLOBAL_PLACEHOLDERS -DBOOST_BEAST_USE_STD_STRING_VIEW")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 project (wordle)
 find_package(Boost COMPONENTS system program_options)

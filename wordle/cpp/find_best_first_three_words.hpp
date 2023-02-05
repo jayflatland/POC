@@ -10,226 +10,227 @@
 #include "match_result.hpp"
 #include "util.hpp"
 
-struct results_type
+struct test_type
 {
-    size_t worst_count_ = 0;
-    word_type worst_solution_;
-    size_t counts_sum_ = 0;
-    size_t counts_cnt_ = 0;
     word_type w1_, w2_, w3_;
-
-    double avg() const { return (double)counts_sum_ / (double)counts_cnt_; }
-
-    void clear()
-    {
-        worst_count_ = 0;
-        counts_sum_ = 0;
-        counts_cnt_ = 0;
-    }
-
-    double loss() const
-    {
-        if (counts_cnt_ == 0)
-        {
-            return 9999999;
-        }
-        // return -avg();
-        return worst_count_;
-    }
-
-    template <typename StreamT>
-    friend StreamT &operator<<(StreamT &os, const results_type &r)
-    {
-        os << "guess_words: {" << r.w1_ << ", " << r.w2_ << ", " << r.w3_ << "}";
-        os << " worst: " << r.worst_solution_ << " (" << r.worst_count_ << ")";
-        os << " avg:" << r.avg();
-        os << " loss: " << r.loss();
-        return os;
-    }
 };
 
-inline match_results_type quick_calc_match_results(const word_type &solution, const word_type &guess)
+template <typename StreamT>
+StreamT &operator<<(StreamT &os, const test_type &x)
 {
-    auto results = match_results_type();
-    word_type solution_copy = solution;
-    word_type guess_copy = guess;
-
-    // copy in word
-    results.set_guess(guess);
-
-    // check for greens first
-    for (size_t i = 0; i < 5; i++)
-    {
-        if (guess_copy[i] == solution_copy[i])
-        {
-            results.m_pos[i].m_color = color_type::green;
-            solution_copy[i] = '_';
-            guess_copy[i] = '*';
-        }
-    }
-
-    // check for yellows
-    for (size_t i = 0; i < 5; i++)
-    {
-        // for (size_t j = 0; j < 5; j++)
-        // {
-        //     // std::cout << "i=" << i << ", solution_copy=" << solution_copy << ", guess_copy=" << guess_copy << ", results=" << results << std::endl;
-        //     if (guess_copy[i] == solution_copy[j])
-        //     {
-        //         results.m_pos[i].m_color = color_type::yellow;
-        //         solution_copy[j] = '_';
-        //         guess_copy[i] = '*';
-        //     }
-        // }
-
-        if (solution_copy.contains(guess_copy[i]))
-        {
-            results.m_pos[i].m_color = color_type::yellow;
-            solution_copy.remove(guess_copy[i]);
-            guess_copy[i] = '*';
-        }
-    }
-
-    return results;
+    os << "{\"" << x.w1_ << "\",\"" << x.w2_ << "\",\"" << x.w3_ << "\"}";
+    return os;
 }
 
-inline void mask_solutions_that_match(const match_results_type &match_results, const word_list_type &words, mask_type &mask)
+inline int color_to_int(const color_type &color)
 {
-    word_list_type remaining_solutions;
-    assert(words.size() == mask.size());
-    // for (int i = 0; i < words.size(); i++)
-    int i = 0;
-    for (auto &&w : words)
+    switch (color)
     {
-        if (!mask[i])
-        {
-            i++;
-            continue;
-        }
-
-        auto test_results = quick_calc_match_results(w, match_results.guess());
-        if (test_results != match_results)
-        {
-            mask[i] = false;
-        }
-        i++;
+    default:
+    case color_type::gray:
+        return 0;
+    case color_type::yellow:
+        return 1;
+    case color_type::green:
+        return 2;
     }
+    return 0;
 }
 
-inline results_type find_best(const word_list_type &words, const results_type &start_result, int idx)
+inline int match_result_to_int(const match_results_type &m)
 {
-    results_type best = start_result;
-    // for (auto &&w : words)
-    auto &&w = words[::rand() % words.size()];
+    int r = 0;
+    for (auto &&lc : m.pos_)
     {
-        std::cout << "w=" << w << std::endl;
-        results_type r = best;
-        r.clear();
-        switch (idx)
-        {
-        case 1:
-            r.w1_ = w;
-            break;
-        case 2:
-            r.w2_ = w;
-            break;
-        case 3:
-            r.w3_ = w;
-            break;
-        default:
-            assert(false);
-            break;
-        }
-
-        for (auto &&solution : words)
-        {
-            std::cout << "w=" << w << ", s=" << solution << std::endl;
-            mask_type mask = full_mask(words.size());
-            mask_solutions_that_match(quick_calc_match_results(solution, r.w1_), words, mask);
-            mask_solutions_that_match(quick_calc_match_results(solution, r.w2_), words, mask);
-            mask_solutions_that_match(quick_calc_match_results(solution, r.w3_), words, mask);
-            size_t cnt = std::count_if(mask.begin(), mask.end(), [](auto &&e)
-                                       { return e; });
-            r.counts_sum_ += cnt;
-            r.counts_cnt_++;
-            if (cnt > r.worst_count_)
-            {
-                r.worst_count_ = cnt;
-                r.worst_solution_ = solution;
-            }
-        }
-
-        if (r.loss() < best.loss())
-        {
-            std::cout << idx << ": " << best << std::endl;
-            best = r;
-        }
+        auto &&c = lc.color_;
+        r = r * 3 + color_to_int(c);
     }
-    return best;
+    return r;
+}
+
+inline int word_solution_to_int(const word_type &word, const word_type &solution)
+{
+    return match_result_to_int(calc_match_results(solution, word));
+}
+
+inline int calc_test_result(const test_type &tst, const word_type &solution)
+{
+    static const int max_word_result = 243; // 3**5
+    int r = 0;
+    r = r * max_word_result + word_solution_to_int(solution, tst.w1_);
+    r = r * max_word_result + word_solution_to_int(solution, tst.w2_);
+    r = r * max_word_result + word_solution_to_int(solution, tst.w3_);
+    return r;
+}
+
+class score_type
+{
+public:
+    double score() const
+    {
+        // return -max_;
+        return cnt_;
+    }
+
+    int max_ = 0;
+    int total_ = 0;
+    int cnt_ = 0;
+
+    double avg() const
+    {
+        return (double)total_ / cnt_;
+    }
+
+    bool operator<(const score_type &rhs) const { return score() < rhs.score(); }
+};
+
+template <typename StreamT>
+StreamT &operator<<(StreamT &os, const score_type &x)
+{
+    os << "(cnt=" << x.cnt_ << ", max=" << x.max_ << ", avg=" << x.avg() << ", score=" << x.score() << ")";
+    return os;
+}
+
+inline score_type calc_score_for_test(const word_list_type &words, const test_type &test)
+{
+    std::unordered_map<int, int> counts;
+    for (auto &&s : words)
+    {
+        int r = calc_test_result(test, s);
+        counts[r]++;
+    }
+
+    score_type s;
+    for (auto &&kv : counts)
+    {
+        auto &&cnt = kv.second;
+        s.total_ += cnt;
+        s.max_ = std::max(s.max_, cnt);
+        s.cnt_++;
+    }
+    return s;
+}
+
+test_type random_mutate_test(const word_list_type &words, const test_type &parent)
+{
+    int wn = random() % 3;
+    int wi = random() % words.size();
+
+    auto w = words[wi];
+    test_type child = parent;
+    switch (wn)
+    {
+    case 0:
+        child.w1_ = w;
+        break;
+    case 1:
+        child.w2_ = w;
+        break;
+    case 2:
+        child.w3_ = w;
+        break;
+    }
+    return child;
+}
+
+test_type cycle_mutate_test(const word_list_type &words, const test_type &parent)
+{
+    static int wi = 0;
+    static int wn = 0;
+    wn++;
+    if (wn >= 3)
+    {
+        wi++;
+        wn = 0;
+    }
+    if (wi >= words.size())
+    {
+        wi = 0;
+    }
+
+    auto w = words[wi];
+    test_type child = parent;
+    switch (wn)
+    {
+    case 0:
+        child.w1_ = w;
+        break;
+    case 1:
+        child.w2_ = w;
+        break;
+    case 2:
+        child.w3_ = w;
+        break;
+    }
+    return child;
 }
 
 inline void find_best_first_three_words()
 {
     /*=========================================================================
-    Strategy:
-    For each solution, a set of guess words will produce a set of possible
-    solutions.  We want to know the guess words that produce the smallest max
-    number of possible solutions.
-
-    The primary problem is that for a given guess set G, I need to try every
-    solution, and for every solution, I need to try every word.  So there's a
-    tough N^2 problem in there.
-
-    For each solution, I need to compute a match result set M, and then need
-    to see for each word how many words fit that match set.
-
-    def compute_loss(guess_words):
-        max_loss = 0
-        for s in words:
-            match_set = calc_match_results(guess_words, s)
-            loss = 0
-            for w in words:
-                M2 = calc_match_results(guess_words, w)
-                if match_set == M2:
-                    loss += 1
-            max_loss = max(max_loss, loss)
-
-    How can I speed that up?
-
-    Are any calculations cacheable?
+    Thinking again.
+    Each set of 3 words is a test
+    Each solution for a given test will result in a 3x match result.
+    Each match result has 3**5=243 possibilities
+    Each 3x match result has 3**15=14,348,907 possibilities
     =========================================================================*/
 
     auto words = read_5_letter_words("wordle_words.txt");
-    // auto words = read_5_letter_words("wordle_solutions.txt");
+    auto solutions = read_5_letter_words("wordle_solutions.txt");
     // auto words = read_5_letter_words("corncob_lowercase.txt");
     // auto words = read_5_letter_words("dwyl_alpha_words.txt");
     // auto words = read_5_letter_words("sample_100_words.txt");
     // auto words = read_5_letter_words("sample_1000_words.txt");
+    // auto&& solutions = words;
 
     std::cout << words.size() << " words" << std::endl;
+    std::cout << solutions.size() << " solutions" << std::endl;
 
-    // std::unordered_map<std::pair<word_type, word_type>, mask_type> word_solution_to_mask_cache;
-    // for (auto &&w : words)
-    // {
-    //     std::cout << "w=" << w << std::endl;
-    //     for (auto &&s : words)
-    //     {
-    //         // std::cout << "w=" << w << ", s=" << s << std::endl;
-    //         mask_type mask = full_mask(words.size());
-    //         mask_solutions_that_match(quick_calc_match_results(s, w), words, mask);
-    //         word_solution_to_mask_cache[std::make_pair(w, s)] = mask;
-    //     }
-    // }
+    // test_type best_test{words.front(), words.front(), words.front()};
+    // test_type best_test{"corse","palet","bundt"};//(cnt=1836, max=9, avg=1.26089, score=1836);//wordle words/solutions, cnt
+    test_type best_test{"corse", "palet", "wings"}; //=>(cnt=1749, max=6, avg=1.32361, score=-6)//wordle words/solutions, max
+    // test_type best_test{"aesir","cloth","bungy"};
+    // test_type best_test{"meros","patly","deink"};
+    // test_type best_test{"colts","spare","admin"};
+    // best={"skran","cloth","derig"}=>-26
+    // best={"freak","cloth","admin"}=>-7 wordl solutions, max
+    // best={"cloth","kesar","admin"}=>-28, dwyl, max
+    // best={"meros","patly","deink"}=>-26, dwyl, max
+    score_type best_score = calc_score_for_test(solutions, best_test);
+    std::cout << "best=" << best_test << "=>" << best_score << std::endl;
 
-    // results_type best;
-    // best.w1_ = words.front();
-    // best.w2_ = words.front();
-    // best.w3_ = words.front();
+    int test_cnt = 0;
+    while (true)
+    {
+        test_cnt++;
+        test_type test = random_mutate_test(words, best_test);
+        // test_type test = cycle_mutate_test(words, best_test);
+        score_type score = calc_score_for_test(solutions, test);
+        if (best_score < score)
+        {
+            best_score = score;
+            best_test = test;
+            std::cout << "[" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+        }
+    }
 
-    // while(true)
-    // {
-    //     best = find_best(words, best, 1);
-    //     best = find_best(words, best, 2);
-    //     best = find_best(words, best, 3);
-    // }
+    // brute force search
+    //  for (auto &&w1 : words)
+    //  {
+    //      for (auto &&w2 : words)
+    //      {
+    //          for (auto &&w3 : words)
+    //          {
+    //              test_cnt++;
+    //              test_type test{w1, w2, w3};
+    //              double score = calc_score_for_test(words, test);
+    //              if (score > best_score)
+    //              {
+    //                  best_score = score;
+    //                  best_test = test;
+    //                  std::cout << "[" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+    //              }
+    //          }
+    //      }
+    //  }
 }

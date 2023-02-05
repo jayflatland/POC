@@ -19,7 +19,7 @@ inline match_results_type calc_match_results(const word_type &solution, const wo
         // std::cout << "i=" << i << ", solution_copy=" << solution_copy << ", guess_copy=" << guess_copy << ", results=" << results << std::endl;
         if (guess_copy[i] == solution_copy[i])
         {
-            results.m_pos[i].m_color = color_type::green;
+            results.pos_[i].color_ = color_type::green;
             solution_copy[i] = '_';
             guess_copy[i] = '*';
         }
@@ -35,7 +35,7 @@ inline match_results_type calc_match_results(const word_type &solution, const wo
         // std::cout << "i=" << i << ", solution_copy=" << solution_copy << ", guess_copy=" << guess_copy << ", results=" << results << std::endl;
         if (solution_copy.contains(guess_copy[i]))
         {
-            results.m_pos[i].m_color = color_type::yellow;
+            results.pos_[i].color_ = color_type::yellow;
             solution_copy.remove(guess_copy[i]);
             guess_copy[i] = '*';
         }

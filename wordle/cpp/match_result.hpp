@@ -7,7 +7,7 @@
 class match_results_type
 {
 public:
-    std::array<letter_color_type, 5> m_pos;
+    std::array<letter_color_type, 5> pos_;
 
     match_results_type()
     {
@@ -26,7 +26,7 @@ public:
         word_type r;
         for (int i = 0; i < 5; i++)
         {
-            r[i] = m_pos[i].m_letter;
+            r[i] = pos_[i].letter_;
         }
         return r;
     }
@@ -35,7 +35,7 @@ public:
     {
         for (int i = 0; i < 5; i++)
         {
-            m_pos[i].m_letter = w[i];
+            pos_[i].letter_ = w[i];
         }
     }
 
@@ -43,19 +43,19 @@ public:
     {
         for (int i = 0; i < 5; i++)
         {
-            m_pos[i].m_color = color_type::gray;
+            pos_[i].color_ = color_type::gray;
             if (colors[i] == 'y')
-                m_pos[i].m_color = color_type::yellow;
+                pos_[i].color_ = color_type::yellow;
             if (colors[i] == 'g')
-                m_pos[i].m_color = color_type::green;
+                pos_[i].color_ = color_type::green;
         }
     }
 
     bool operator==(const match_results_type &o) const
     {
-        for (size_t i = 0; i < m_pos.size(); i++)
+        for (size_t i = 0; i < pos_.size(); i++)
         {
-            if (!(m_pos[i] == o.m_pos[i]))
+            if (!(pos_[i] == o.pos_[i]))
             {
                 return false;
             }
@@ -72,7 +72,7 @@ public:
 template <typename StreamT>
 StreamT &operator<<(StreamT &s, const match_results_type &m)
 {
-    for (auto &&p : m.m_pos)
+    for (auto &&p : m.pos_)
     {
         s << p;
     }
