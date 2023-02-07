@@ -2,7 +2,7 @@
 
 #include <functional>
 
-template<>
+// template<>
 template<typename A, typename B>
 struct std::hash<std::pair<A, B>>
 {

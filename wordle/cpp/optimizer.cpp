@@ -46,15 +46,15 @@ inline word_type find_best_guess_word(const word_list_type &possible_solutions, 
     word_type best_guess;
     for (auto &&guess : words_to_try)
     {
-        int sum_remaining_solution_cnt = 0;
-        int sum_cnt = 0;
+        // int sum_remaining_solution_cnt = 0;
+        // int sum_cnt = 0;
         int max_remaining_solution_cnt = 0;
         for (auto &&solution : possible_solutions)
         {
             auto results = calc_match_results(solution, guess);
             auto cnt = count_solutions_that_match(results, possible_solutions);
-            sum_cnt += 1;
-            sum_remaining_solution_cnt += cnt;
+            // sum_cnt += 1;
+            // sum_remaining_solution_cnt += cnt;
             max_remaining_solution_cnt = std::max(max_remaining_solution_cnt, cnt);
             // if(guess == "comet")
             // {
@@ -94,8 +94,8 @@ inline word_list_type find_best_first_two_guess_words(const word_list_type &poss
         {
             for (auto &&guess3 : words_to_try)
             {
-                int sum_remaining_solution_cnt = 0;
-                int sum_cnt = 0;
+                // int sum_remaining_solution_cnt = 0;
+                // int sum_cnt = 0;
                 int max_remaining_solution_cnt = 0;
                 for (auto &&solution : possible_solutions)
                 {
@@ -106,8 +106,8 @@ inline word_list_type find_best_first_two_guess_words(const word_list_type &poss
                     auto solutions2 = find_solutions_that_match(results, solutions1);
                     results = calc_match_results(solution, guess3);
                     auto cnt = count_solutions_that_match(results, solutions2);
-                    sum_cnt += 1;
-                    sum_remaining_solution_cnt += cnt;
+                    // sum_cnt += 1;
+                    // sum_remaining_solution_cnt += cnt;
                     max_remaining_solution_cnt = std::max(max_remaining_solution_cnt, cnt);
                 }
                 // double score = (double)sum_remaining_solution_cnt / (double)sum_cnt;

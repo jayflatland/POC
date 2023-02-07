@@ -186,9 +186,9 @@ inline void find_best_first_three_words()
     std::cout << words.size() << " words" << std::endl;
     std::cout << solutions.size() << " solutions" << std::endl;
 
-    // test_type best_test{words.front(), words.front(), words.front()};
+    test_type best_test{words.front(), words.front(), words.front()};
     // test_type best_test{"corse","palet","bundt"};//(cnt=1836, max=9, avg=1.26089, score=1836);//wordle words/solutions, cnt
-    test_type best_test{"corse", "palet", "wings"}; //=>(cnt=1749, max=6, avg=1.32361, score=-6)//wordle words/solutions, max
+    // test_type best_test{"corse", "palet", "wings"}; //=>(cnt=1749, max=6, avg=1.32361, score=-6)//wordle words/solutions, max
     // test_type best_test{"aesir","cloth","bungy"};
     // test_type best_test{"meros","patly","deink"};
     // test_type best_test{"colts","spare","admin"};
@@ -204,6 +204,7 @@ inline void find_best_first_three_words()
     {
         test_cnt++;
         test_type test = random_mutate_test(words, best_test);
+        test = random_mutate_test(words, test);
         // test_type test = cycle_mutate_test(words, best_test);
         score_type score = calc_score_for_test(solutions, test);
         if (best_score < score)
@@ -215,22 +216,23 @@ inline void find_best_first_three_words()
     }
 
     // brute force search
-    //  for (auto &&w1 : words)
-    //  {
-    //      for (auto &&w2 : words)
-    //      {
-    //          for (auto &&w3 : words)
-    //          {
-    //              test_cnt++;
-    //              test_type test{w1, w2, w3};
-    //              double score = calc_score_for_test(words, test);
-    //              if (score > best_score)
-    //              {
-    //                  best_score = score;
-    //                  best_test = test;
-    //                  std::cout << "[" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
-    //              }
-    //          }
-    //      }
-    //  }
+    // for (auto &&w1 : words)
+    // {
+    //     for (auto &&w2 : words)
+    //     {
+    //         std::cout << w1 << "," << w2 << std::endl;
+    //         for (auto &&w3 : words)
+    //         {
+    //             test_cnt++;
+    //             test_type test{w1, w2, w3};
+    //             score_type score = calc_score_for_test(words, test);
+    //             if (best_score < score)
+    //             {
+    //                 best_score = score;
+    //                 best_test = test;
+    //                 std::cout << "[" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+    //             }
+    //         }
+    //     }
+    // }
 }
