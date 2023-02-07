@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <unordered_map>
+#include <chrono>
+#include <fmt/format.h>
 
 #include "pair_hash.hpp"
 #include "word.hpp"
@@ -9,6 +11,41 @@
 #include "mask.hpp"
 #include "match_result.hpp"
 #include "util.hpp"
+
+inline match_results_type fast_calc_match_results(const word_type &solution, const word_type &guess)
+{
+    auto results = match_results_type();
+    word_type solution_copy = solution;
+    word_type guess_copy = guess;
+
+    // copy in word
+    results.set_guess(guess);
+
+    // check for greens first
+    for (size_t i = 0; i < 5; i++)
+    {
+        if (guess_copy[i] == solution_copy[i])
+        {
+            results.pos_[i].color_ = color_type::green;
+            solution_copy[i] = '_';
+            guess_copy[i] = '*';
+        }
+    }
+
+    // check for yellows
+    for (size_t i = 0; i < 5; i++)
+    {
+        if (solution_copy.contains(guess_copy[i]))
+        {
+            results.pos_[i].color_ = color_type::yellow;
+            solution_copy.remove(guess_copy[i]);
+            //FASTER (not really) guess_copy[i] = '*';
+        }
+    }
+
+    return results;
+}
+
 
 struct test_type
 {
@@ -50,7 +87,7 @@ inline int match_result_to_int(const match_results_type &m)
 
 inline int word_solution_to_int(const word_type &word, const word_type &solution)
 {
-    return match_result_to_int(calc_match_results(solution, word));
+    return match_result_to_int(fast_calc_match_results(solution, word));
 }
 
 inline int calc_test_result(const test_type &tst, const word_type &solution)
@@ -68,8 +105,8 @@ class score_type
 public:
     double score() const
     {
-        // return -max_;
-        return cnt_;
+        return -max_;
+        // return cnt_;
     }
 
     int max_ = 0;
@@ -177,6 +214,7 @@ inline void find_best_first_three_words()
 
     auto words = read_5_letter_words("wordle_words.txt");
     auto solutions = read_5_letter_words("wordle_solutions.txt");
+    // auto words = read_5_letter_words("wordle_solutions.txt");
     // auto words = read_5_letter_words("corncob_lowercase.txt");
     // auto words = read_5_letter_words("dwyl_alpha_words.txt");
     // auto words = read_5_letter_words("sample_100_words.txt");
@@ -200,18 +238,35 @@ inline void find_best_first_three_words()
     std::cout << "best=" << best_test << "=>" << best_score << std::endl;
 
     int test_cnt = 0;
+    auto start_time = std::chrono::system_clock::now();
+    auto last_report_time = start_time;
+    
+    auto test_rate = [&]() {
+        auto now = std::chrono::system_clock::now();
+        auto dt = now - start_time;
+        return (double)test_cnt * 1e9 / std::chrono::nanoseconds(dt).count();
+    };
+    
     while (true)
     {
         test_cnt++;
-        test_type test = random_mutate_test(words, best_test);
-        test = random_mutate_test(words, test);
+        test_type test = cycle_mutate_test(words, best_test);
+        test = cycle_mutate_test(words, test);
         // test_type test = cycle_mutate_test(words, best_test);
         score_type score = calc_score_for_test(solutions, test);
         if (best_score < score)
         {
             best_score = score;
             best_test = test;
-            std::cout << "[" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+            std::cout << test_rate() << " per second [" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+        }
+
+        auto now = std::chrono::system_clock::now();
+        auto since_last_report = now - last_report_time;
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(since_last_report).count() >= 5000)
+        {
+            std::cout << test_rate() << " per second [" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+            last_report_time = now;
         }
     }
 
