@@ -199,48 +199,62 @@ inline score_type calc_score_for_test(const word_list_type &words, const test_ty
     return s;
 }
 
-inline test_type random_mutate_test(const word_list_type &words, const test_type &parent)
+inline test_type random_mutate_test(const word_list_type &words, const test_type &parent, int loops=1)
 {
-    int wn = random() % parent.size();
-    int wi = random() % words.size();
-
-    auto w = words[wi];
     test_type child = parent;
-    child[wn] = w;
+    
+    for(int i = 0; i < loops; i++)
+    {
+        int wn = random() % child.size();
+        int wi = random() % words.size();
+
+        child[wn] = words[wi];
+    }
     return child;
 }
 
-inline test_type cycle_mutate_test(const word_list_type &words, const test_type &parent)
+inline test_type cycle_mutate_test(const word_list_type &words, const test_type &parent, int loops=1)
 {
-    static int wi = 0;
-    static int wn = 0;
-    wn++;
-    if (wn >= 3)
-    {
-        wi++;
-        wn = 0;
-    }
-    if (wi >= words.size())
-    {
-        wi = 0;
-    }
-
-    auto w = words[wi];
     test_type child = parent;
-    child[wn] = w;
+    
+    for(int i = 0; i < loops; i++)
+    {
+        static int wi = 0;
+        static int wn = 0;
+        wn++;
+        if (wn >= 3)
+        {
+            wi++;
+            wn = 0;
+        }
+        if (wi >= words.size())
+        {
+            wi = 0;
+        }
+
+        auto w = words[wi];
+        child[wn] = w;
+    }
+    return child;
+}
+
+inline test_type random_char_mutate_test(const word_list_type &words, const test_type &parent, int loops=1)
+{
+    test_type child = parent;
+    
+    for(int i = 0; i < loops; i++)
+    {
+        int word_num = random() % child.size();
+        int char_num = random() % 5;
+        char new_char = 'a' + random() % 26;
+
+        child[word_num][char_num] = new_char;
+    }
     return child;
 }
 
 inline void find_best_first_three_words()
 {
-    /*=========================================================================
-    Thinking again.
-    Each set of 3 words is a test
-    Each solution for a given test will result in a 3x match result.
-    Each match result has 3**5=243 possibilities
-    Each 3x match result has 3**15=14,348,907 possibilities
-    =========================================================================*/
-
     auto words = read_5_letter_words("wordle_words.txt");
     // auto words = read_5_letter_words("wordle_solutions.txt");
     auto solutions = read_5_letter_words("wordle_solutions.txt");
@@ -254,13 +268,23 @@ inline void find_best_first_three_words()
     std::cout << words.size() << " words" << std::endl;
     std::cout << solutions.size() << " solutions" << std::endl;
 
-    //test_type best_test{words.front(), words.front(), words.front()};
     test_type best_test{"homed", "clang", "sprit"};
-    // test_type best_test{words.front(), words.front(), words.front(), words.front()};
     // test_type best_test{words.front()};
     // test_type best_test{words.front(), words.front()};
-    // blast,viper,downy - solutions only
-    // homed,clang,sprit - wordle words and solutions
+    // test_type best_test{words.front(), words.front(), words.front()};
+    // test_type best_test{words.front(), words.front(), words.front(), words.front()};
+
+    // wordle words only
+    // best={berth,milky,paved,gowns}=>(cnt=10354, max=11, avg=1.25285, score=-1101.25, mr=1000001110002002000)
+    // best={wacko,trugs,impel}=>(cnt=5721, max=33, avg=2.26744, score=-3302.27, mr=112000200000)
+    // best={homed,clang,sprit}=>(cnt=6935, max=34, avg=1.87051, score=-3401.87, mr=1000010001110)
+    // best={degum,lanch,spirt}=>(cnt=6468, max=28, avg=2.00557, score=-2802.01, mr=10201200020000)
+
+    // wordle words and solutions
+    // best={homed,clang,sprit}=>(cnt=1936, max=6, avg=1.19576, score=-601.196, mr=2000000000000)
+    // best={comps,ruble,daint}=>(cnt=1908, max=6, avg=1.21331, score=-601.213, mr=101010200000100)
+    // best={pronk,wight,clued,samba}=>(cnt=2212, max=3, avg=1.04656, score=-301.047, mr=20020100000200)
+
     score_type best_score = calc_score_for_test(solutions, best_test);
     std::cout << "best=" << best_test << "=>" << best_score << std::endl;
 
@@ -278,9 +302,9 @@ inline void find_best_first_three_words()
     while (true)
     {
         test_cnt++;
-        test_type test = random_mutate_test(words, best_test);
-        test = random_mutate_test(words, test);
-        // test_type test = cycle_mutate_test(words, best_test);
+        // test_type test = random_char_mutate_test(words, best_test, 10);
+        test_type test = random_mutate_test(words, best_test, random() % 3);
+        // test_type test = cycle_mutate_test(words, best_test, 1);
         score_type score = calc_score_for_test(solutions, test);
         if (best_score < score)
         {
@@ -291,49 +315,10 @@ inline void find_best_first_three_words()
 
         auto now = std::chrono::system_clock::now();
         auto since_last_report = now - last_report_time;
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(since_last_report).count() >= 5000)
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(since_last_report).count() >= 60000)
         {
-            std::cout << test_rate() << " per second [" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
+            std::cout << test_rate() << " per second [" << test_cnt << "]" << std::endl;
             last_report_time = now;
         }
     }
-
-    /*
-    why do old way and new way not produce same results?
-
-    //old way, worst case for aesir (worst solution is block)
-    //block,blond,blood,bloom,blown,bluff,blunt,bobby,bongo,booby,booth,booty,boozy,botch,bough,bound,buddy,buggy,bulky,bully,bunch,bunny,butch,buxom,chock,chuck,chump,chunk,clock,cloth,cloud,clout,clown,cluck,clump,clung,colon,comfy,conch,condo,couch,cough,could,count,coyly,dodgy,dolly,donut,doubt,dough,dowdy,downy,duchy,dully,dummy,dumpy,dutch,flock,flood,flout,flown,fluff,flung,flunk,foggy,folly,found,fully,funky,funny,fuzzy,ghoul,gloom,glyph,godly,golly,goody,goofy,gulch,gully,gumbo,gummy,guppy,hobby,holly,hotly,hound,howdy,humph,hunch,hunky,hutch,jolly,jumbo,jumpy,junto,knock,knoll,known,lobby,lofty,loopy,lowly,lucky,lumpy,lunch,lymph,lynch,mogul,moldy,month,moody,motto,moult,mound,mount,mouth,mucky,muddy,mulch,mummy,munch,nobly,notch,nutty,nylon,nymph,oddly,ought,outdo,outgo,phony,photo,pluck,plumb,plump,plunk,polyp,pooch,poppy,pouch,pound,pouty,pudgy,puffy,pulpy,punch,puppy,putty,pygmy,quoth,thong,thumb,thump,toddy,tooth,touch,tough,uncut,vouch,whoop,woody,wooly,woozy,would,wound,young,youth,aesir, -168, aesir, -168
-
-    //new way, worst case for aesir (worst solution is block)
-    //block,blond,blood,bloom,blown,bluff,blunt,bobby,bongo,booby,booth,booty,boozy,botch,bough,bound,buddy,buggy,bulky,bully,bunch,bunny,butch,buxom,chock,chuck,chump,chunk,clock,cloth,cloud,clout,clown,cluck,clump,clung,colon,comfy,conch,condo,couch,cough,could,count,coyly,dodgy,dolly,donut,doubt,dough,dowdy,downy,duchy,dully,dummy,dumpy,dutch,flock,flood,flout,flown,fluff,flung,flunk,foggy,folly,found,fully,funky,funny,fuzzy,ghoul,gloom,glyph,godly,golly,goody,goofy,gulch,gully,gumbo,gummy,guppy,hobby,holly,hotly,hound,howdy,humph,hunch,hunky,hutch,jolly,jumbo,jumpy,junto,knock,knoll,known,lobby,lofty,loopy,lowly,lucky,lumpy,lunch,lymph,lynch,mogul,moldy,month,moody,motto,moult,mound,mount,mouth,mucky,muddy,mulch,mummy,munch,nobly,notch,nutty,nylon,nymph,oddly,ought,outdo,outgo,phony,photo,pluck,plumb,plump,plunk,polyp,pooch,poppy,pouch,pound,pouty,pudgy,puffy,pulpy,punch,puppy,putty,pygmy,quoth,thong,thumb,thump,toddy,tooth,touch,tough,uncut,vouch,whoop,woody,wooly,woozy,would,wound,young,youth
-
-    new way is counting wrong somehow, gets 199 instead of 168
-
-    AHA!!!  new way is incorrect - for a guess word, not all solutions with the same
-    color pattern are the same
-
-    AHA AGAIN - the match result was inverted.  old way is agnostic to A vs B or B vs A
-    in the match result calc.  new way is sensitive.
-    */
-
-    // brute force search
-    // for (auto &&w1 : words)
-    // {
-    //     for (auto &&w2 : words)
-    //     {
-    //         std::cout << w1 << "," << w2 << std::endl;
-    //         for (auto &&w3 : words)
-    //         {
-    //             test_cnt++;
-    //             test_type test{w1, w2, w3};
-    //             score_type score = calc_score_for_test(words, test);
-    //             if (best_score < score)
-    //             {
-    //                 best_score = score;
-    //                 best_test = test;
-    //                 std::cout << "[" << test_cnt << "] best=" << best_test << "=>" << best_score << std::endl;
-    //             }
-    //         }
-    //     }
-    // }
 }
