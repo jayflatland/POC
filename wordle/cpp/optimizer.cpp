@@ -23,17 +23,17 @@ namespace po = boost::program_options;
 Best words: {aesir, cloth, boing}
 */
 
-// #define GUESS_LIST      "wordle_words.txt"
-// #define SOLUTIONS_LIST  "wordle_solutions.txt"
-// #define BEST_FIRST_GUESS "aesir"
+#define GUESS_LIST      "wordle_words.txt"
+#define SOLUTIONS_LIST  "wordle_solutions.txt"
+#define BEST_FIRST_GUESS "aesir"
 
 // #define GUESS_LIST      "corncob_lowercase.txt"
 // #define SOLUTIONS_LIST  "corncob_lowercase.txt"
 // #define BEST_FIRST_GUESS "serai"
 
-#define GUESS_LIST "dwyl_alpha_words.txt"
-#define SOLUTIONS_LIST "dwyl_alpha_words.txt"
-#define BEST_FIRST_GUESS "abase"
+// #define GUESS_LIST "dwyl_alpha_words.txt"
+// #define SOLUTIONS_LIST "dwyl_alpha_words.txt"
+// #define BEST_FIRST_GUESS "abase"
 
 inline word_type find_best_guess_word(const word_list_type &possible_solutions, const word_list_type &words_to_try, bool verbose = false)
 {

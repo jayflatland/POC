@@ -39,23 +39,35 @@ inline match_results_type fast_calc_match_results(const word_type &solution, con
         {
             results.pos_[i].color_ = color_type::yellow;
             solution_copy.remove(guess_copy[i]);
-            //FASTER (not really) guess_copy[i] = '*';
+            // FASTER (not really) guess_copy[i] = '*';
         }
     }
 
     return results;
 }
 
+using test_type = std::vector<word_type>;
 
-struct test_type
-{
-    word_type w1_, w2_, w3_;
-};
+// struct test_type
+// {
+//     word_type w1_, w2_, w3_;
+// };
 
 template <typename StreamT>
 StreamT &operator<<(StreamT &os, const test_type &x)
 {
-    os << "{\"" << x.w1_ << "\",\"" << x.w2_ << "\",\"" << x.w3_ << "\"}";
+    os << "{\"";
+    bool first = true;
+    for (auto &&w : x)
+    {
+        if (!first)
+        {
+            os << ",";
+        }
+        first = false;
+        os << '"' << w << '"';
+    }
+    os << "\"}";
     return os;
 }
 
@@ -94,9 +106,10 @@ inline int calc_test_result(const test_type &tst, const word_type &solution)
 {
     static const int max_word_result = 243; // 3**5
     int r = 0;
-    r = r * max_word_result + word_solution_to_int(solution, tst.w1_);
-    r = r * max_word_result + word_solution_to_int(solution, tst.w2_);
-    r = r * max_word_result + word_solution_to_int(solution, tst.w3_);
+    for (auto &&w : tst)
+    {
+        r = r * max_word_result + word_solution_to_int(solution, w);
+    }
     return r;
 }
 
@@ -105,8 +118,9 @@ class score_type
 public:
     double score() const
     {
-        return -max_;
+        // return -max_;
         // return cnt_;
+        return -avg();
     }
 
     int max_ = 0;
@@ -150,23 +164,12 @@ inline score_type calc_score_for_test(const word_list_type &words, const test_ty
 
 test_type random_mutate_test(const word_list_type &words, const test_type &parent)
 {
-    int wn = random() % 3;
+    int wn = random() % parent.size();
     int wi = random() % words.size();
 
     auto w = words[wi];
     test_type child = parent;
-    switch (wn)
-    {
-    case 0:
-        child.w1_ = w;
-        break;
-    case 1:
-        child.w2_ = w;
-        break;
-    case 2:
-        child.w3_ = w;
-        break;
-    }
+    child[wn] = w;
     return child;
 }
 
@@ -187,18 +190,7 @@ test_type cycle_mutate_test(const word_list_type &words, const test_type &parent
 
     auto w = words[wi];
     test_type child = parent;
-    switch (wn)
-    {
-    case 0:
-        child.w1_ = w;
-        break;
-    case 1:
-        child.w2_ = w;
-        break;
-    case 2:
-        child.w3_ = w;
-        break;
-    }
+    child[wn] = w;
     return child;
 }
 
@@ -224,7 +216,8 @@ inline void find_best_first_three_words()
     std::cout << words.size() << " words" << std::endl;
     std::cout << solutions.size() << " solutions" << std::endl;
 
-    test_type best_test{words.front(), words.front(), words.front()};
+    // test_type best_test{words.front(), words.front(), words.front()};
+    test_type best_test{"aesir"};
     // test_type best_test{"corse","palet","bundt"};//(cnt=1836, max=9, avg=1.26089, score=1836);//wordle words/solutions, cnt
     // test_type best_test{"corse", "palet", "wings"}; //=>(cnt=1749, max=6, avg=1.32361, score=-6)//wordle words/solutions, max
     // test_type best_test{"aesir","cloth","bungy"};
@@ -240,18 +233,19 @@ inline void find_best_first_three_words()
     int test_cnt = 0;
     auto start_time = std::chrono::system_clock::now();
     auto last_report_time = start_time;
-    
-    auto test_rate = [&]() {
+
+    auto test_rate = [&]()
+    {
         auto now = std::chrono::system_clock::now();
         auto dt = now - start_time;
         return (double)test_cnt * 1e9 / std::chrono::nanoseconds(dt).count();
     };
-    
+
     while (true)
     {
         test_cnt++;
-        test_type test = cycle_mutate_test(words, best_test);
-        test = cycle_mutate_test(words, test);
+        test_type test = random_mutate_test(words, best_test);
+        test = random_mutate_test(words, test);
         // test_type test = cycle_mutate_test(words, best_test);
         score_type score = calc_score_for_test(solutions, test);
         if (best_score < score)
