@@ -42,14 +42,16 @@ inline word_type find_best_guess_word(const word_list_type &possible_solutions, 
         return possible_solutions.front();
     }
 
-    double best_avg_remaining_solution_cnt = std::numeric_limits<double>::max();
+    double best_score = std::numeric_limits<double>::lowest();
     word_type best_guess;
-    for (auto &&guess : words_to_try)
+    // for (auto &&guess : words_to_try)
+    word_type guess = "aesir";
     {
         // int sum_remaining_solution_cnt = 0;
         // int sum_cnt = 0;
         int max_remaining_solution_cnt = 0;
-        for (auto &&solution : possible_solutions)
+        //for (auto &&solution : possible_solutions)
+        word_type solution = "block";
         {
             auto results = calc_match_results(solution, guess);
             auto cnt = count_solutions_that_match(results, possible_solutions);
@@ -62,21 +64,21 @@ inline word_type find_best_guess_word(const word_list_type &possible_solutions, 
             // }
         }
         // double score = (double)sum_remaining_solution_cnt / (double)sum_cnt;
-        double score = max_remaining_solution_cnt;
-        if (score < best_avg_remaining_solution_cnt)
+        double score = -max_remaining_solution_cnt;
+        if (score > best_score)
         {
             // if count is low then require the guess be a solution
             // if(score > 1 || possible_solutions.contains(guess))
             {
-                best_avg_remaining_solution_cnt = score;
+                best_score = score;
                 best_guess = guess;
-                // std::cout << "New best guess: " << best_guess << ", " << best_avg_remaining_solution_cnt << std::endl;
+                // std::cout << "New best guess: " << best_guess << ", " << best_score << std::endl;
                 // std::cout << "    score=" << score << ", sum_remaining_solution_cnt=" << sum_remaining_solution_cnt << ", sum_cnt=" << sum_cnt << std::endl;
             }
         }
         if (verbose)
         {
-            std::cout << guess << ", " << score << ", " << best_guess << ", " << best_avg_remaining_solution_cnt << std::endl;
+            std::cout << guess << ", " << score << ", " << best_guess << ", " << best_score << std::endl;
         }
     }
     return best_guess;
@@ -84,7 +86,7 @@ inline word_type find_best_guess_word(const word_list_type &possible_solutions, 
 
 inline word_list_type find_best_first_two_guess_words(const word_list_type &possible_solutions, const word_list_type &words_to_try, bool verbose = false)
 {
-    double best_avg_remaining_solution_cnt = std::numeric_limits<double>::max();
+    double best_score = std::numeric_limits<double>::max();
     word_list_type best_guesses;
     // for(auto && guess1 : words_to_try)
     auto guess1 = word_type("aesir");
@@ -112,23 +114,23 @@ inline word_list_type find_best_first_two_guess_words(const word_list_type &poss
                 }
                 // double score = (double)sum_remaining_solution_cnt / (double)sum_cnt;
                 double score = max_remaining_solution_cnt;
-                if (score < best_avg_remaining_solution_cnt)
+                if (score < best_score)
                 {
                     // if count is low then require the guess be a solution
                     // if(score > 5 || possible_solutions.contains(guess))
                     {
-                        best_avg_remaining_solution_cnt = score;
+                        best_score = score;
                         best_guesses = word_list_type();
                         best_guesses.push_back(guess1);
                         best_guesses.push_back(guess2);
                         best_guesses.push_back(guess3);
-                        // std::cout << "New best guess: " << best_guesses << ", " << best_avg_remaining_solution_cnt << std::endl;
+                        // std::cout << "New best guess: " << best_guesses << ", " << best_score << std::endl;
                         // std::cout << "    score=" << score << ", sum_remaining_solution_cnt=" << sum_remaining_solution_cnt << ", sum_cnt=" << sum_cnt << std::endl;
                     }
                 }
                 if (verbose)
                 {
-                    std::cout << guess1 << ", " << guess2 << ", " << guess3 << ", " << score << ", " << best_guesses << ", " << best_avg_remaining_solution_cnt << std::endl;
+                    std::cout << guess1 << ", " << guess2 << ", " << guess3 << ", " << score << ", " << best_guesses << ", " << best_score << std::endl;
                 }
             }
         }
