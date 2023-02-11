@@ -75,7 +75,6 @@ inline int count_solutions_that_match(const match_results_type &match_results, c
     {
         if (solution_is_possible_for_match_results(test_solution, match_results))
         {
-            std::cout << test_solution << ",";
             cnt++;
         }
     }

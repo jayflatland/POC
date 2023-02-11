@@ -229,7 +229,7 @@ inline void find_best_first_three_words()
     // best={"meros","patly","deink"}=>-26, dwyl, max
     score_type best_score = calc_score_for_test(solutions, best_test);
     std::cout << "best=" << best_test << "=>" << best_score << std::endl;
-    return;
+
     int test_cnt = 0;
     auto start_time = std::chrono::system_clock::now();
     auto last_report_time = start_time;
@@ -264,8 +264,20 @@ inline void find_best_first_three_words()
         }
     }
 
+    /*
+    why do old way and new way not produce same results?
+
     //old way, worst case for aesir (worst solution is block)
     //block,blond,blood,bloom,blown,bluff,blunt,bobby,bongo,booby,booth,booty,boozy,botch,bough,bound,buddy,buggy,bulky,bully,bunch,bunny,butch,buxom,chock,chuck,chump,chunk,clock,cloth,cloud,clout,clown,cluck,clump,clung,colon,comfy,conch,condo,couch,cough,could,count,coyly,dodgy,dolly,donut,doubt,dough,dowdy,downy,duchy,dully,dummy,dumpy,dutch,flock,flood,flout,flown,fluff,flung,flunk,foggy,folly,found,fully,funky,funny,fuzzy,ghoul,gloom,glyph,godly,golly,goody,goofy,gulch,gully,gumbo,gummy,guppy,hobby,holly,hotly,hound,howdy,humph,hunch,hunky,hutch,jolly,jumbo,jumpy,junto,knock,knoll,known,lobby,lofty,loopy,lowly,lucky,lumpy,lunch,lymph,lynch,mogul,moldy,month,moody,motto,moult,mound,mount,mouth,mucky,muddy,mulch,mummy,munch,nobly,notch,nutty,nylon,nymph,oddly,ought,outdo,outgo,phony,photo,pluck,plumb,plump,plunk,polyp,pooch,poppy,pouch,pound,pouty,pudgy,puffy,pulpy,punch,puppy,putty,pygmy,quoth,thong,thumb,thump,toddy,tooth,touch,tough,uncut,vouch,whoop,woody,wooly,woozy,would,wound,young,youth,aesir, -168, aesir, -168
+
+    //new way, worst case for aesir (worst solution is block)
+    //block,blond,blood,bloom,blown,bluff,blunt,bobby,bongo,booby,booth,booty,boozy,botch,bough,bound,buddy,buggy,bulky,bully,bunch,bunny,butch,buxom,chock,chuck,chump,chunk,clock,cloth,cloud,clout,clown,cluck,clump,clung,colon,comfy,conch,condo,couch,cough,could,count,coyly,dodgy,dolly,donut,doubt,dough,dowdy,downy,duchy,dully,dummy,dumpy,dutch,flock,flood,flout,flown,fluff,flung,flunk,foggy,folly,found,fully,funky,funny,fuzzy,ghoul,gloom,glyph,godly,golly,goody,goofy,gulch,gully,gumbo,gummy,guppy,hobby,holly,hotly,hound,howdy,humph,hunch,hunky,hutch,jolly,jumbo,jumpy,junto,knock,knoll,known,lobby,lofty,loopy,lowly,lucky,lumpy,lunch,lymph,lynch,mogul,moldy,month,moody,motto,moult,mound,mount,mouth,mucky,muddy,mulch,mummy,munch,nobly,notch,nutty,nylon,nymph,oddly,ought,outdo,outgo,phony,photo,pluck,plumb,plump,plunk,polyp,pooch,poppy,pouch,pound,pouty,pudgy,puffy,pulpy,punch,puppy,putty,pygmy,quoth,thong,thumb,thump,toddy,tooth,touch,tough,uncut,vouch,whoop,woody,wooly,woozy,would,wound,young,youth
+
+    new way is counting wrong somehow, gets 199 instead of 168
+    
+    AHA!!!  new way is incorrect - for a guess word, not all solutions with the same
+    color pattern are the same
+    */
 
     // brute force search
     // for (auto &&w1 : words)
