@@ -12,8 +12,8 @@ module peg(x, y, d)
     {
         cube([w, w, h]);
     }
-    translate([x, y, 0])
-    cylinder(4, d/2, d/2);//just for checking
+    //translate([x, y, 0])
+    //cylinder(4, d/2, d/2);//just for checking
 }
 d7_8 = 29.9;
 d13_16 = 27.9;
