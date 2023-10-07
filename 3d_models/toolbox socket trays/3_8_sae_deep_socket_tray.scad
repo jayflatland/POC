@@ -7,13 +7,13 @@ cube([pad_w, pad_d, pad_h]);
 module peg(x, y, d)
 {
     w = 9;
-    h = 17;
+    h = 17.3;
     translate([x - w/2, y - w/2, 0])
     {
         cube([w, w, h]);
     }
-    //translate([x, y, 0])
-    //cylinder(4, d/2, d/2);//just for checking
+    translate([x, y, 0])
+    cylinder(3.3, d/2, d/2);//just for checking
 }
 d7_8 = 29.9;
 d13_16 = 27.9;
