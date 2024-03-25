@@ -9,22 +9,40 @@ Gy = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8  # y-coo
 n  = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141  # Order of the base point
 
 # Generate a random private key
-private_key = 0x1FAD0768778CBA8319F2B05B10125F4C81E0F2F95A2CBA13E24F482E65178FFB
+# private_key = 0x1FAD0768778CBA8319F2B05B10125F4C81E0F2F95A2CBA13E24F482E65178FFB
 #Public Key: 0xc0c064669faf4758881331d6526993380f93e31b71401d49a836f648d8cb8a96 0x19542b62302491bb8a0ef44079a04ffefd9fecf70893c7794745aae6f98df44f
+
+# REFERENCE
+private_key = 0xbbf24a103e78d521ff097b22c05086033d0f663d134b4a30fb38cc80d32c23c4
+
+#FROM bitcoin library
+# Public Key: 04078f5a49b5c4fe846f98a627fa4ede6702666e2ea8f49a4d794ac1c07275c02256e7b2a73c76a98adbb8c9dba5c9b8c76a5186ef67b8b0bc570bd14969038578
+# Bitcoin Address: 14yFRRLnSmxJuW8PAXyhuAri7PJ6edZFiU
+
+#FROM this code
+# Public Key: 0x078f5a49b5c4fe846f98a627fa4ede6702666e2ea8f49a4d794ac1c07275c022 0x56e7b2a73c76a98adbb8c9dba5c9b8c76a5186ef67b8b0bc570bd14969038578
+exp_pubkey = 0x078f5a49b5c4fe846f98a627fa4ede6702666e2ea8f49a4d794ac1c07275c022, 0x56e7b2a73c76a98adbb8c9dba5c9b8c76a5186ef67b8b0bc570bd14969038578
+
+#COOL, they match.  Concat the 2 values and prefix with 0x04 and it matches
+
 
 def p_add(P, Q):
     x1, y1 = P
     x2, y2 = Q
-    slope = (y2 - y1) * pow(x2 - x1, p - 2, p) % p
-    x3 = (slope * slope - x1 - x2) % p
-    y3 = (slope * (x1 - x3) - y1) % p
+    dx = x2 - x1
+    dy = y2 - y1
+    # dy * dx ^ (p-2)%p
+    m = dy * pow(dx, p - 2, p) % p
+    x3 = (m * m - x1 - x2) % p
+    y3 = (m * (x1 - x3) - y1) % p
     return x3, y3
 
 def p_double(P):
-    x1, y1 = P
-    slope = (3 * x1 * x1 + a) * pow(2 * y1, p - 2, p) % p
-    x3 = (slope * slope - x1 - x1) % p
-    y3 = (slope * (x1 - x3) - y1) % p
+    x, y = P
+    # (3 * x^2 + a) * ( (2*y) ^ (p-2) % p ) % p
+    m = (3 * x * x + a) * pow(2 * y, p - 2, p) % p
+    x3 = (m * m - x - x) % p
+    y3 = (m * (x - x3) - y) % p
     return x3, y3
 
 def scalar_multiply(k, P):
@@ -43,3 +61,4 @@ public_key = scalar_multiply(private_key, (Gx, Gy))
 
 print("Private Key:", hex(private_key))
 print("Public Key:", hex(public_key[0]), hex(public_key[1]))
+assert public_key == exp_pubkey
