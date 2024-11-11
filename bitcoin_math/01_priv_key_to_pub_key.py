@@ -25,6 +25,8 @@ exp_pubkey = 0x078f5a49b5c4fe846f98a627fa4ede6702666e2ea8f49a4d794ac1c07275c022,
 
 #COOL, they match.  Concat the 2 values and prefix with 0x04 and it matches
 
+#y^2=x^3+7
+assert (Gy ** 2)%p == (Gx ** 3 + 7)%p
 
 def p_add(P, Q):
     x1, y1 = P
