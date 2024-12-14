@@ -5,10 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C++ Launch (Windows)",
+            "name": "uhd_test01",
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/uhd_test01",
-          }        
+        },
+        {
+            "name": "uhd_test02",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/uhd_test02",
+        }
     ]
 }
