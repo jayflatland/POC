@@ -13,4 +13,4 @@ target_link_libraries(uhd_test02 uhd ${Boost_LIBRARIES})
 
 include_directories( ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
 add_executable(uhd_test03 uhd_test03.cpp)
-target_link_libraries(uhd_test03 ${OPENGL_LIBRARIES} glut)
+target_link_libraries(uhd_test03 ${OPENGL_LIBRARIES} glut uhd)
