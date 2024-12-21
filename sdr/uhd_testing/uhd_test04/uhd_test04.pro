@@ -15,5 +15,6 @@ INCLUDEPATH += .
 
 # Input
 SOURCES += uhd_test04.cpp
+LIBS += -luhd
 
 QT += widgets
