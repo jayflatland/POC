@@ -1,3 +1,13 @@
+/*
+Tasks:
+[ ] Figure out app close error
+[ ] Figure out proper buffer sequencing
+    [ ] Get samples in order
+[ ] Record samples for analysis
+[ ] Get audio output working
+[ ] Get a simple FM demodulator working
+*/
+
 #include <QApplication>
 #include <QMainWindow>
 #include <QMenuBar>
@@ -40,11 +50,12 @@ public:
         if(!usrp) { exit(0); }
 
         usrp->set_rx_antenna("TX/RX", 0);
-        usrp->set_rx_rate(40e6, uhd::usrp::multi_usrp::ALL_CHANS);
-        //usrp->set_rx_freq(101.1e6, 0);//101 the fox
-        //usrp->set_rx_freq(920e6, 0);//random 900MHz stuff
-        usrp->set_rx_freq(2.45e9, 0);//2.4GHz
-        usrp->set_rx_bandwidth(100e6, 0);
+        usrp->set_rx_rate(10e6, uhd::usrp::multi_usrp::ALL_CHANS);
+        usrp->set_rx_freq(101.1e6, 0);//101 the fox
+        // usrp->set_rx_freq(89.3e6, 0);//NPR
+        // usrp->set_rx_freq(920e6, 0);//random 900MHz stuff
+        // usrp->set_rx_freq(2.45e9, 0);//2.4GHz
+        usrp->set_rx_bandwidth(200e3, 0);
 
         uhd::stream_args_t stream_args("fc32", "sc16");
         stream_args.channels = {0};
@@ -79,6 +90,7 @@ protected:
     uhd::usrp::multi_usrp::sptr usrp;
     uhd::rx_streamer::sptr rx_stream;
     std::vector<float*> buffs;
+    float filtered_max = 0.01;
 
     void initializeGL() override {
         initializeOpenGLFunctions();
@@ -120,9 +132,18 @@ protected:
             // }
         }
 
+        static constexpr int draw_samps = 4000;
+
+        float this_max = 0.0;
+        for(int i = 0; i < draw_samps; i++)
+        {
+            this_max = std::max(this_max, buffs[0][i]);
+        }
+        filtered_max = filtered_max * 0.99 + this_max * 0.01;
+
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.0, 1.0, -0.05, 0.05, -1.0, 1.0);
+        glOrtho(0.0, 1.0, -filtered_max * 2.0, filtered_max * 2.0, -1.0, 1.0);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
@@ -131,16 +152,27 @@ protected:
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glColor3f(1.0, 0.0, 1.0);
+        float x, y;
+
+        glColor3f(1.0, 0.0, 0.0);
         glBegin(GL_LINE_STRIP);
-        float x = 0.0;
-        float y;
-        static constexpr int draw_samps = 4000;
-        for(int i = 0; i < draw_samps; i++)
+        x = 0.0;
+        for(int i = 0; i < draw_samps; i += 2)
         {
             y = buffs[0][i];
             glVertex2f(x, y);
-            x += 1.0 / draw_samps;
+            x += 2.0 / draw_samps;
+        }
+        glEnd();
+
+        glColor3f(0.0, 1.0, 0.0);
+        glBegin(GL_LINE_STRIP);
+        x = 0.0;
+        for(int i = 0; i < draw_samps; i += 2)
+        {
+            y = buffs[0][i + 1];
+            glVertex2f(x, y);
+            x += 2.0 / draw_samps;
         }
         glEnd();
 
