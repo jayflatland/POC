@@ -34,17 +34,24 @@ public:
     OpenGLWidget(QWidget *parent = nullptr) : QOpenGLWidget(parent)
     {
         usrp = uhd::usrp::multi_usrp::make("name,product=B200,serial=F5C23F,type=b200,uhd");
-        if(!usrp)
-        {
-            exit(0);
-        }
+        // usrp = uhd::usrp::multi_usrp::make("serial=11079075318916476466,driver=audio,type=soapy");
 
-        usrp->set_rx_rate(8e6, uhd::usrp::multi_usrp::ALL_CHANS);
-        //usrp->set_rx_freq(101.1e6, 0);
-        usrp->set_rx_freq(900.0e6, 0);
-        //usrp->set_rx_gain(1.0, uhd::usrp::multi_usrp::ALL_CHANS);
-        usrp->set_rx_bandwidth(8e6, 0);
-        // usrp->set_rx_antenna("RX/TX", 0);
+        if(!usrp) { exit(0); }
+
+        std::cout << "Trying to set antenna to TX/RX..." << std::endl;
+        usrp->set_rx_antenna("TX/RX", 0);
+        std::cout << "Trying to set rate..." << std::endl;
+        usrp->set_rx_rate(40e6, uhd::usrp::multi_usrp::ALL_CHANS);
+        std::cout << "Trying to set freq..." << std::endl;
+        usrp->set_rx_freq(1090e6, 0);
+        std::cout << "Actual freq is " << usrp->get_rx_freq() << std::endl;
+        std::cout << "Trying to set BW..." << std::endl;
+        usrp->set_rx_bandwidth(40e6, 0);
+        // auto antennas = usrp->get_rx_antennas();
+        // for(auto &&antenna : antennas)
+        // {
+        //     std::cout << antenna << std::endl;
+        // }
 
         uhd::stream_args_t stream_args("fc32", "sc16");
         stream_args.channels = {0};
@@ -82,6 +89,28 @@ protected:
     }
 
     void paintGL() override {
+        uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_MORE);
+        stream_cmd.num_samps  = samps_per_buff;
+        stream_cmd.stream_now = true;
+        // stream_cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.5);
+        rx_stream->issue_stream_cmd(stream_cmd);
+
+        while(true)
+        {
+            uhd::rx_metadata_t md;
+            size_t num_rx_samps;
+            // static int cnt = 0;
+            num_rx_samps = rx_stream->recv(buffs, samps_per_buff, md, 3.0, true);
+            (void)num_rx_samps;
+            // std::cout << "got " << num_rx_samps << " samples" << std::endl;
+            if(num_rx_samps == 0)
+            {
+                break;
+            }
+            // cnt++;
+        }
+
+
         // glClear(GL_COLOR_BUFFER_BIT);
 
         // // Example rendering: draw a simple triangle
@@ -93,7 +122,7 @@ protected:
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.0, 4000, -0.01, 0.01, -1.0, 1.0);
+        glOrtho(0.0, 4000, -0.05, 0.05, -1.0, 1.0);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
@@ -109,28 +138,14 @@ protected:
         // glVertex3f(400 + 100.0, 400 + 100.0, 0.0);
         // glEnd();
 
-        uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_MORE);
-        stream_cmd.num_samps  = samps_per_buff;
-        stream_cmd.stream_now = true;
-        // stream_cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.5);
-        rx_stream->issue_stream_cmd(stream_cmd);
-
-        uhd::rx_metadata_t md;
-        size_t num_rx_samps;
-        // static int cnt = 0;
-        num_rx_samps = rx_stream->recv(buffs, samps_per_buff, md, 3.0, true);
-        (void)num_rx_samps;
-        // std::cout << cnt << ": got " << num_rx_samps << " samples" << std::endl;
-        // cnt++;
-
         glBegin(GL_LINE_STRIP);
         float x = 0.0;
         float y;
-        for(int i = 0; i < std::min(4000, samps_per_buff); i++)
+        for(int i = 0; i < std::min(1000, samps_per_buff); i++)
         {
             y = buffs[0][i];
             glVertex2f(x, y);
-            x += 1.0;
+            x += 4.0;
         }
         glEnd();
 
