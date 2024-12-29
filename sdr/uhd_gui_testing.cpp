@@ -50,9 +50,11 @@ public:
         if(!usrp) { exit(0); }
 
         usrp->set_rx_antenna("TX/RX", 0);
-        usrp->set_rx_rate(10e6, uhd::usrp::multi_usrp::ALL_CHANS);
-        usrp->set_rx_freq(101.1e6, 0);//101 the fox
+        usrp->set_rx_rate(60e6, uhd::usrp::multi_usrp::ALL_CHANS);
+        // usrp->set_rx_freq(101.1e6, 0);//101 the fox
+        // usrp->set_rx_freq(151.88e6, 0);//Jacob
         // usrp->set_rx_freq(89.3e6, 0);//NPR
+        usrp->set_rx_freq(92.3e6, 0);//Nearby tower
         // usrp->set_rx_freq(920e6, 0);//random 900MHz stuff
         // usrp->set_rx_freq(2.45e9, 0);//2.4GHz
         usrp->set_rx_bandwidth(200e3, 0);
@@ -140,10 +142,11 @@ protected:
             this_max = std::max(this_max, buffs[0][i]);
         }
         filtered_max = filtered_max * 0.99 + this_max * 0.01;
+        // filtered_max = 1.0;
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.0, 1.0, -filtered_max * 2.0, filtered_max * 2.0, -1.0, 1.0);
+        glOrtho(0.0, 1.0, -filtered_max * 5.0, filtered_max * 5.0, -1.0, 1.0);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
