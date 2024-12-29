@@ -29,7 +29,8 @@
 
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
-    const int samps_per_buff = (1<<20);
+    static constexpr int samps_per_buff = (1<<20);
+    float samples_[samps_per_buff];
 
     OpenGLWidget(QWidget *parent = nullptr) : QOpenGLWidget(parent)
     {
@@ -38,20 +39,12 @@ public:
 
         if(!usrp) { exit(0); }
 
-        std::cout << "Trying to set antenna to TX/RX..." << std::endl;
         usrp->set_rx_antenna("TX/RX", 0);
-        std::cout << "Trying to set rate..." << std::endl;
         usrp->set_rx_rate(40e6, uhd::usrp::multi_usrp::ALL_CHANS);
-        std::cout << "Trying to set freq..." << std::endl;
-        usrp->set_rx_freq(101.1e6, 0);
-        std::cout << "Actual freq is " << usrp->get_rx_freq() << std::endl;
-        std::cout << "Trying to set BW..." << std::endl;
-        usrp->set_rx_bandwidth(50e3, 0);
-        // auto antennas = usrp->get_rx_antennas();
-        // for(auto &&antenna : antennas)
-        // {
-        //     std::cout << antenna << std::endl;
-        // }
+        //usrp->set_rx_freq(101.1e6, 0);//101 the fox
+        //usrp->set_rx_freq(920e6, 0);//random 900MHz stuff
+        usrp->set_rx_freq(2.45e9, 0);//2.4GHz
+        usrp->set_rx_bandwidth(100e6, 0);
 
         uhd::stream_args_t stream_args("fc32", "sc16");
         stream_args.channels = {0};
@@ -72,6 +65,14 @@ public:
         connect(timer, &QTimer::timeout, this, QOverload<>::of(&OpenGLWidget::update));
         timer->start(16); // Approximately 60 FPS
 
+    }
+
+    virtual ~OpenGLWidget()
+    {
+        for(int i = 0; i < (int)buffs.size(); i++)
+        {
+            delete buffs[i];
+        }
     }
 
 protected:
@@ -95,6 +96,9 @@ protected:
         // stream_cmd.time_spec  = usrp->get_time_now() + uhd::time_spec_t(0.5);
         rx_stream->issue_stream_cmd(stream_cmd);
 
+        
+        // float *dst = samples_;
+        // float *end = samples_ + samps_per_buff;
         while(true)
         {
             uhd::rx_metadata_t md;
@@ -108,21 +112,17 @@ protected:
                 break;
             }
             // cnt++;
+            // const float *src = buffs[0];
+            // for(int i = 0; i < num_rx_samps; i++)
+            // {
+            //     *dst++ = *src++;
+            //     if(dst >= end) { break; }
+            // }
         }
-
-
-        // glClear(GL_COLOR_BUFFER_BIT);
-
-        // // Example rendering: draw a simple triangle
-        // glBegin(GL_TRIANGLES);
-        // glColor3f(1.0f, 0.0f, 0.0f); glVertex2f(0.0f, 1.0f); // Top vertex (red)
-        // glColor3f(0.0f, 1.0f, 0.0f); glVertex2f(-1.0f, -1.0f); // Bottom-left vertex (green)
-        // glColor3f(0.0f, 0.0f, 1.0f); glVertex2f(1.0f, -1.0f); // Bottom-right vertex (blue)
-        // glEnd();
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.0, 4000, -0.05, 0.05, -1.0, 1.0);
+        glOrtho(0.0, 1.0, -0.05, 0.05, -1.0, 1.0);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
@@ -132,20 +132,15 @@ protected:
         glClear(GL_COLOR_BUFFER_BIT);
 
         glColor3f(1.0, 0.0, 1.0);
-        // glBegin(GL_TRIANGLES);
-        // glVertex3f(400 + -100.0, 400 + -100.0, 0.0);
-        // glVertex3f(400 + 100.0, 400 + -100.0, 0.0);
-        // glVertex3f(400 + 100.0, 400 + 100.0, 0.0);
-        // glEnd();
-
         glBegin(GL_LINE_STRIP);
         float x = 0.0;
         float y;
-        for(int i = 0; i < std::min(8000, samps_per_buff); i++)
+        static constexpr int draw_samps = 4000;
+        for(int i = 0; i < draw_samps; i++)
         {
             y = buffs[0][i];
             glVertex2f(x, y);
-            x += 4000.0 / 8000.0;
+            x += 1.0 / draw_samps;
         }
         glEnd();
 
