@@ -29,7 +29,7 @@
 
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
-    static const int samps_per_buff = (1<<20);
+    const int samps_per_buff = (1<<20);
 
     OpenGLWidget(QWidget *parent = nullptr) : QOpenGLWidget(parent)
     {
@@ -43,10 +43,10 @@ public:
         std::cout << "Trying to set rate..." << std::endl;
         usrp->set_rx_rate(40e6, uhd::usrp::multi_usrp::ALL_CHANS);
         std::cout << "Trying to set freq..." << std::endl;
-        usrp->set_rx_freq(1090e6, 0);
+        usrp->set_rx_freq(101.1e6, 0);
         std::cout << "Actual freq is " << usrp->get_rx_freq() << std::endl;
         std::cout << "Trying to set BW..." << std::endl;
-        usrp->set_rx_bandwidth(40e6, 0);
+        usrp->set_rx_bandwidth(50e3, 0);
         // auto antennas = usrp->get_rx_antennas();
         // for(auto &&antenna : antennas)
         // {
@@ -141,11 +141,11 @@ protected:
         glBegin(GL_LINE_STRIP);
         float x = 0.0;
         float y;
-        for(int i = 0; i < std::min(1000, samps_per_buff); i++)
+        for(int i = 0; i < std::min(8000, samps_per_buff); i++)
         {
             y = buffs[0][i];
             glVertex2f(x, y);
-            x += 4.0;
+            x += 4000.0 / 8000.0;
         }
         glEnd();
 

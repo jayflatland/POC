@@ -24,6 +24,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/uhd_test03",
             "args": [],
+        },
+        {
+            "name": "uhd_test04",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/uhd_test04/uhd_test04",
+            "args": [],
         }
     ]
 }
