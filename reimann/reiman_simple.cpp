@@ -11,13 +11,32 @@ function.
 #include <complex>
 #include <iostream>
 #include <limits>
-#include <cmath>
 
 using cd = std::complex<double>;
-constexpr double PI = 3.141592653589793238462643383279502884;
-constexpr double EULER_GAMMA = 0.577215664901532860606512090082402431; // γ
 
-// ---------------------- Series primitives (no std::sin/exp) ----------------------
+// -------------------- Generate constants from series --------------------
+// π via Gregory–Leibniz: π = 4 * Σ (-1)^n / (2n+1)
+double compute_pi(std::size_t max_terms = 1000000, double eps=1e-14) {
+    double sum = 0.0;
+    for (std::size_t n = 0; n < max_terms; ++n) {
+        double term = ((n & 1) ? -1.0 : 1.0) / (2.0*n + 1.0);
+        sum += term;
+        if (std::abs(term) < eps) break;
+    }
+    return 4.0 * sum;
+}
+
+// Euler–Mascheroni γ = lim_{n→∞} ( Σ_{k=1}^n 1/k - ln n )
+// Here we approximate ln n with Taylor log_series
+double log_series(double x, double eps=1e-14, std::size_t max_terms=1000000);
+
+double compute_gamma(std::size_t N = 100000) {
+    double sum = 0.0;
+    for (std::size_t k = 1; k <= N; ++k) sum += 1.0 / (double)k;
+    return sum - log_series((double)N);
+}
+
+// -------------------- Series primitives --------------------
 cd exp_series(cd z, double eps = 1e-14, std::size_t max_terms = 1000000) {
     cd term = 1.0, sum = 1.0;
     for (std::size_t k = 1; k < max_terms; ++k) {
@@ -29,91 +48,95 @@ cd exp_series(cd z, double eps = 1e-14, std::size_t max_terms = 1000000) {
 }
 
 cd sin_series(cd z, double eps = 1e-14, std::size_t max_terms = 1000000) {
-    cd term = z, sum = z; // k=0 term
+    cd term = z, sum = z;
     for (std::size_t k = 1; k < max_terms; ++k) {
-        // term_k = term_{k-1} * ( - z^2 / ( (2k)(2k+1) ) )
-        term *= -(z*z) / cd((double)(2*k*(2*k+1)), 0.0);
+        term *= -(z*z) / cd((double)(2*k*(2*k+1)),0.0);
         sum += term;
         if (std::abs(term) < eps) break;
     }
     return sum;
 }
 
-// ---------------------- Gamma via Weierstrass product (+ reflection) -------------
-// 1/Gamma(z) = z * e^{γ z} * Π_{n=1..∞} (1 + z/n) * e^{-z/n}
-cd gamma_weierstrass(cd z, double eps = 1e-14, std::size_t max_n = 1000000) {
-    // Handle poles approximately: the product will diverge; caller should avoid exact poles.
-    cd inv = z * exp_series(EULER_GAMMA * z);
+// Natural log via Taylor expansion around 1, with argument reduction
+// ln(x) = 2 * [ y + y^3/3 + y^5/5 + ... ], with y=(x-1)/(x+1)
+double log_series(double x, double eps, std::size_t max_terms) {
+    if (x <= 0.0) return -std::numeric_limits<double>::infinity();
+    int k = 0;
+    while (x > 2.0) { x /= 2.0; k++; }
+    while (x < 0.5) { x *= 2.0; k--; }
+    double y = (x - 1.0) / (x + 1.0);
+    double ypow = y, sum = 0.0;
+    for (std::size_t n = 0; n < max_terms; ++n) {
+        double term = ypow / (2*n+1);
+        sum += term;
+        ypow *= y*y;
+        if (std::abs(term) < eps) break;
+    }
+    return 2.0*sum + k*log_series(2.0, eps, max_terms); // ln(2) recursively
+}
+
+// -------------------- Gamma via Weierstrass --------------------
+cd gamma_weierstrass(cd z, double gamma_const, double eps=1e-14, std::size_t max_n=200000) {
+    cd inv = z * exp_series(gamma_const * z);
     cd prod = 1.0;
     for (std::size_t n = 1; n <= max_n; ++n) {
-        cd a = 1.0 + z / (double)n;
-        cd b = exp_series(-z / (double)n);
-        cd term = a * b;              // factor_n
+        cd term = (1.0 + z/(double)n) * exp_series(-z/(double)n);
         prod *= term;
-        // Convergence check: factors approach 1; stop when |term-1| small for a while.
         if (std::abs(term - cd(1.0,0.0)) < eps && n > 10) break;
     }
-    cd inv_gamma = inv * prod;
-    return cd(1.0,0.0) / inv_gamma;
+    return cd(1.0,0.0) / (inv * prod);
 }
 
-// Reflection for general z; prefers Weierstrass on the right half-plane.
-cd gamma_complex(cd z, double eps = 1e-14) {
-    if (z.real() > 0.0) return gamma_weierstrass(z, eps);
-    // Γ(z) = π / (sin(π z) * Γ(1 - z))
-    cd piz = PI * z;
-    cd sin_piz = sin_series(piz, eps);
-    cd g1mz = gamma_weierstrass(cd(1.0,0.0) - z, eps);
-    return (PI) / (sin_piz * g1mz);
+cd gamma_complex(cd z, double pi_const, double gamma_const) {
+    if (z.real() > 0.0) return gamma_weierstrass(z, gamma_const);
+    return pi_const / (sin_series(pi_const*z) * gamma_weierstrass(cd(1.0,0.0)-z, gamma_const));
 }
 
-// ---------------------- Zeta with minimal machinery ------------------------------
-cd zeta(cd s, double eps = 1e-12, std::size_t max_iters = 1000000) {
-    // // Simple pole at s = 1
-    // if (std::abs(s - cd(1.0,0.0)) < 1e-15)
-    //     return cd(std::numeric_limits<double>::infinity(), 0.0);
+// -------------------- Zeta function --------------------
+cd zeta(cd s, double pi_const, double gamma_const, double eps=1e-12, std::size_t max_iters=100000) {
+    if (std::abs(s - cd(1.0,0.0)) < 1e-14)
+        return cd(std::numeric_limits<double>::infinity(),0.0);
 
-    // // Trivial zeros at negative even integers (helpful exactness)
-    // if (std::abs(s.imag()) < 1e-14) {
-    //     double r = s.real();
-    //     double k = -r/2.0, kr = std::round(k);
-    //     if (std::abs(k - kr) < 1e-12 && kr >= 1.0) return cd(0.0,0.0);
-    // }
+    if (std::abs(s.imag()) < 1e-14) {
+        double r = s.real();
+        double k = -r/2.0, kr = std::round(k);
+        if (std::abs(k - kr) < 1e-12 && kr >= 1) return cd(0.0,0.0);
+    }
 
-    // Re(s) > 0: alternating Dirichlet series (Dirichlet eta)
     if (s.real() > 0.0) {
         cd sum = 0.0;
         for (std::size_t n = 1;; ++n) {
-            // term = (-1)^{n-1} / n^s = (-1)^{n-1} * exp( -s * ln n )
-            double ln_n = std::log((double)n);          // real ln
-            cd term = ((n & 1) ? 1.0 : -1.0) * exp_series(-s * ln_n, eps);
+            double ln_n = log_series((double)n);
+            cd term = ((n & 1) ? 1.0 : -1.0) * exp_series(-s*ln_n);
             sum += term;
             if (std::abs(term) < eps || n > max_iters) break;
         }
-        // denom = 1 - 2^{1-s} = 1 - exp((1-s) ln 2)
-        cd denom = cd(1.0,0.0) - exp_series((cd(1.0,0.0) - s) * std::log(2.0), eps);
+        cd denom = 1.0 - exp_series((cd(1.0)-s)*log_series(2.0));
         return sum / denom;
     }
 
-    // Re(s) ≤ 0: functional equation
-    cd two_pow_s   = exp_series(s * std::log(2.0), eps);
-    cd pi_pow_s_1  = exp_series((s - cd(1.0,0.0)) * std::log(PI), eps);
-    cd sin_factor  = sin_series( (PI/2.0) * s, eps );
-    cd gamma_part  = gamma_complex(cd(1.0,0.0) - s, eps);
+    cd two_pow_s  = exp_series(s*log_series(2.0));
+    cd pi_pow_s1  = exp_series((s-cd(1.0))*log_series(pi_const));
+    cd sin_fac    = sin_series((pi_const/2.0)*s);
+    cd gamma_part = gamma_complex(cd(1.0)-s, pi_const, gamma_const);
 
-    cd factor = two_pow_s * pi_pow_s_1 * sin_factor * gamma_part;
-    return factor * zeta(cd(1.0,0.0) - s, eps, max_iters);
+    return two_pow_s * pi_pow_s1 * sin_fac * gamma_part * zeta(cd(1.0)-s, pi_const, gamma_const, eps, max_iters);
 }
 
-// ---------------------- Demo / CLI -----------------------------------------------
+// -------------------- Demo --------------------
 int main() {
     std::cout.setf(std::ios::fixed); std::cout.precision(15);
+    double PI = compute_pi(200000);
+    double GAMMA = compute_gamma(200000);
+    std::cout << "Computed constants:\n";
+    std::cout << "PI ≈ " << PI << "\n";
+    std::cout << "Euler–Mascheroni γ ≈ " << GAMMA << "\n";
+
     double sr, si;
     std::cout << "Enter s as 'real imag': ";
     if (!(std::cin >> sr >> si)) return 0;
     cd s(sr, si);
-    cd val = zeta(s);
+    cd val = zeta(s, PI, GAMMA);
     std::cout << "zeta(" << sr << " + " << si << "i) = "
               << val.real() << " + " << val.imag() << "i\n";
-    return 0;
 }
