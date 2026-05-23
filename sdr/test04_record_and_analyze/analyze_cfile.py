@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # %%
 
-# uhd_rx_cfile -s 56e6 -r 56e6 -f 913.1e6 -g 40 -A RX2 -m test1.cfile
+# uhd_rx_cfile -r 56e6 -f 913.1e6 -g 40 -A RX2 test1.cfile
 fs = 56e6 # Sample rate
 x = np.fromfile('test1.cfile', dtype=np.complex64)
 
@@ -56,7 +56,8 @@ waterfall_db = 10 * np.log10(waterfall + 1e-12)
 # %%
 # Plot the waterfall
 plt.figure(figsize=(10, 6))
-extent = [-fs/2/1e3, fs/2/1e3, 0, duration]  # x: freq (kHz), y: time (s)
+#extent = [-fs/2/1e3, fs/2/1e3, 0, duration]  # x: freq (kHz), y: time (s)
+extent = [-fs/2/1e3, fs/2/1e3, 0, n]  # x: freq (kHz), y: time (s)
 plt.imshow(
     waterfall_db,
     aspect='auto',
