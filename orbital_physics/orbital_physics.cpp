@@ -79,7 +79,7 @@ public:
             for(auto && p2 : particles_) {
                 if(&p1 == &p2) {continue;}
                 p1.interact(p2);
-                p2.interact(p1);
+                // p2.interact(p1);
             }
         }
 
