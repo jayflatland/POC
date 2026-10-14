@@ -4,6 +4,7 @@
 #include <vector>
 #include "GL/freeglut.h"
 #include "GL/gl.h"
+#include "GL/glx.h"
 
 #include "vector.hpp"
 #include "particle.hpp"
@@ -160,10 +161,17 @@ int main(int argc, char *argv[]) {
 
     app.init();
 
-    glutInitDisplayMode(GLUT_SINGLE);
+    glutInitDisplayMode(GLUT_DOUBLE);
     glutInitWindowSize(1300, 1300);
     glutInitWindowPosition(700, 0);
     glutCreateWindow("Orbital Physics");
+
+    // disable vsync so the sim runs as fast as possible
+    auto swapInterval = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalEXT");
+    if(swapInterval) {
+        swapInterval(glXGetCurrentDisplay(), glXGetCurrentDrawable(), 0);
+    }
+
     glutDisplayFunc(draw);
     glutIdleFunc(draw);
     glutKeyboardFunc(handleKeys);
