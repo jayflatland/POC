@@ -1,8 +1,8 @@
 /*
 Aviation (VHF airband) scanner for the B200.
 
-Watches every AM channel in the airband at once from a single 38.4 MS/s
-tuning, plays the newest transmission through pacat, and logs every
+Watches every AM channel in the airband at once from a single B200
+tuning (up to 38.4 MS/s), plays the newest transmission through pacat, and logs every
 transmission (played or not).
 
     108-118 MHz   navigation: VOR / ILS beacons (continuous; skipped)
@@ -14,6 +14,14 @@ transmission (played or not).
     ./build/airband --spacing 8.33          # European 8.33 kHz channels
     ./build/airband --freq 124.775          # just listen to one channel (e.g. local ATIS)
 
+Sample rate: by default the smallest multiple of 0.96 MS/s that covers
+--start..--end (38.4 MS/s for the full band). Over USB 2 the B200 streams
+9.6 MS/s cleanly (11.52 overflows), so scan a slice of up to ~7.6 MHz:
+
+    ./build/airband --start 118 --end 124   # 7.68 MS/s, fits USB 2
+    ./build/airband --start 118 --end 125.6 # 9.60 MS/s, the USB 2 maximum
+    ./build/airband --rate 9.6 ...          # or force a rate (MS/s)
+
 Detection: FFT power in each channel vs. that channel's learned noise
 floor AND vs. the current median of its ~1 MHz neighborhood (so broadband
 noise that lifts every channel doesn't open the squelch), with open/close
@@ -24,7 +32,7 @@ loops, spurs) are skipped until they go quiet.
 Playback: the newest open channel gets the speaker and keeps it through a
 --hang second gap (to catch the reply on the same frequency).
 
-Demod: shift channel to 0 Hz -> CIC (order 2) decimate by 160 to 240 kHz
+Demod: shift channel to 0 Hz -> CIC (order 2) decimate by FS/240k to 240 kHz
 -> FIR decimate by 5 to 48 kHz -> envelope -> carrier AGC -> audio.
 
 Keys: s skip this transmission, l lock out this channel, u clear lockouts,
@@ -61,10 +69,12 @@ using cf = std::complex<float>;
 namespace po = boost::program_options;
 
 static const double PI = 3.14159265358979323846;
-static const double FS = 38.4e6;
-static const int DECIM1 = 160;  // CIC: 38.4 MS/s -> 240 kS/s
-static const int DECIM2 = 5;    // FIR: 240 kS/s -> 48 kS/s
-static const double AUDIO_RATE = FS / DECIM1 / DECIM2;
+static const double MAX_FS = 38.4e6;
+static const double FS_STEP = 960e3;  // rates are multiples of this (so DECIM1 is an integer)
+static double FS = MAX_FS;            // set from --rate / the scan range in main()
+static int DECIM1 = 160;              // CIC: FS -> 240 kS/s
+static const int DECIM2 = 5;          // FIR: 240 kS/s -> 48 kS/s
+static const double AUDIO_RATE = 48e3;
 static const double USABLE = 0.8;
 static const double GRID_ANCHOR = 118e6;
 
@@ -828,12 +838,14 @@ static void key_thread_fn() {
 
 int main(int argc, char *argv[]) {
     std::string start_s, end_s;
-    double spacing_khz, duration;
+    double spacing_khz, duration, rate_msps;
     po::options_description desc("Options");
     desc.add_options()
         ("help,h", "show help")
         ("start", po::value<std::string>(&start_s)->default_value("108"), "start frequency (MHz)")
         ("end", po::value<std::string>(&end_s)->default_value("137"), "end frequency (MHz); range must fit in ~30 MHz")
+        ("rate", po::value<double>(&rate_msps)->default_value(0.0),
+            "sample rate in MS/s, a multiple of 0.96 up to 38.4 (0 = smallest that covers the range; USB 2 tops out at 9.6)")
         ("spacing", po::value<double>(&spacing_khz)->default_value(25.0), "channel spacing in kHz (25 or 8.33)")
         ("threshold,t", po::value<double>(&cfg.threshold_db)->default_value(8.0), "squelch: dB over the channel's noise floor to open")
         ("hysteresis", po::value<double>(&cfg.hysteresis_db)->default_value(3.0), "squelch closes this many dB below --threshold")
@@ -846,7 +858,7 @@ int main(int argc, char *argv[]) {
         ("args", po::value<std::string>(&cfg.args)->default_value("type=b200"), "UHD device args")
         ("no-audio", po::bool_switch(&cfg.no_audio), "log transmissions only")
         ("duration", po::value<double>(&duration)->default_value(0.0), "stop after this many seconds (0 = until q / Ctrl-C)")
-        ("file", po::value<std::string>(&cfg.file)->default_value(""), "process a 38.4 MS/s fc32 recording instead (needs --center)")
+        ("file", po::value<std::string>(&cfg.file)->default_value(""), "process an fc32 recording instead (needs --center and --rate)")
         ("center", po::value<double>()->default_value(0.0), "center frequency of --file (MHz)")
         ("audio-cmd", po::value<std::string>(&cfg.audio_cmd)->default_value(
             "pacat --raw --format=s16le --rate=48000 --channels=1 --latency-msec=150 --client-name=airband"),
@@ -869,9 +881,26 @@ int main(int argc, char *argv[]) {
     if (cfg.manual > 0.0 && cfg.manual < 1e5) {
         cfg.manual *= 1e6;
     }
-    if (cfg.end <= cfg.start || cfg.end - cfg.start > USABLE * FS - 2 * cfg.spacing) {
+    if (cfg.end <= cfg.start) {
+        std::cerr << "--end must be above --start" << std::endl;
+        return 1;
+    }
+    if (rate_msps > 0.0) {
+        FS = std::round(rate_msps * 1e6 / FS_STEP) * FS_STEP;
+        if (FS < FS_STEP || FS > MAX_FS || std::abs(FS - rate_msps * 1e6) > 1.0) {
+            std::cerr << "--rate must be a multiple of 0.96 MS/s between 0.96 and 38.4" << std::endl;
+            return 1;
+        }
+    } else if (!cfg.file.empty()) {
+        FS = MAX_FS;  // the old fixed rate, for existing recordings
+    } else {
+        double need = (cfg.end - cfg.start + 2 * cfg.spacing) / USABLE;
+        FS = std::min(MAX_FS, std::ceil(need / FS_STEP - 1e-9) * FS_STEP);
+    }
+    DECIM1 = (int)std::lround(FS / (AUDIO_RATE * DECIM2));
+    if (cfg.end - cfg.start > USABLE * FS - 2 * cfg.spacing) {
         std::cerr << "Range must be positive and at most " << (USABLE * FS - 2 * cfg.spacing) / 1e6
-                  << " MHz wide (one B200 tuning)" << std::endl;
+                  << " MHz wide at " << FS / 1e6 << " MS/s (one B200 tuning)" << std::endl;
         return 1;
     }
 
@@ -906,7 +935,7 @@ int main(int argc, char *argv[]) {
     }
 
     g_scan.init(center);
-    fprintf(stderr, "Airband scanner: %zu channels, %.3f - %.3f MHz (%.2f kHz spacing), tuned to %.4f MHz at %.1f MS/s, "
+    fprintf(stderr, "Airband scanner: %zu channels, %.3f - %.3f MHz (%.2f kHz spacing), tuned to %.4f MHz at %.2f MS/s, "
             "gain %.0f dB\n", g_scan.num_channels(), g_scan.first_freq() / 1e6, g_scan.last_freq() / 1e6,
             cfg.spacing / 1e3, center / 1e6, FS / 1e6, usrp ? usrp->get_rx_gain(0) : 0.0);
     fprintf(stderr, "Keys: s skip  l lockout  u clear lockouts  +/- volume  q quit\n");
