@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.28.3)
+project(atsc_tv CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ffast-math")
+
+find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(Threads REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFTW3F REQUIRED fftw3f)
+pkg_check_modules(FFMPEG REQUIRED libavcodec libavutil libswscale libswresample)
+find_package(OpenGL REQUIRED)
+
+add_executable(atsc_tv atsc_tv.cpp)
+target_include_directories(atsc_tv PRIVATE ${FFTW3F_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIRS})
+target_link_libraries(atsc_tv PRIVATE uhd Boost::program_options ${FFTW3F_LIBRARIES} ${FFMPEG_LIBRARIES} OpenGL::GL glut Threads::Threads)
