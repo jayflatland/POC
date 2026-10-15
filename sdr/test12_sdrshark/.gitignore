@@ -1,0 +1,7 @@
+build
+.vscode
+*.cf32
+*.cfile
+*.sc16
+*.pcapng
+__pycache__
