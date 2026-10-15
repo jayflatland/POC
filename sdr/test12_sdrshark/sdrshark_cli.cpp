@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     po::options_description desc("Options");
     desc.add_options()
         ("help,h", "show help")
-        ("mode,m", po::value<std::string>(&mode)->default_value("wifi"), "wifi, ble, or adsb")
+        ("mode,m", po::value<std::string>(&mode)->default_value("wifi"), "wifi, ble, adsb, or lte")
         ("band", po::value<std::string>(&band)->default_value("2.4"), "wifi: 2.4, 5, all, or a channel list like 1,6,11")
         ("gain,g", po::value<double>(&gain)->default_value(40.0), "rx gain (dB)")
         ("antenna,a", po::value<std::string>(&antenna)->default_value("TX/RX"), "antenna")
@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, [](int) { g_stop = true; });
 
     shark::CaptureConfig cfg;
-    cfg.mode = mode == "ble" ? shark::Mode::Ble : mode == "adsb" ? shark::Mode::Adsb : shark::Mode::Wifi;
+    cfg.mode = mode == "ble" ? shark::Mode::Ble : mode == "adsb" ? shark::Mode::Adsb : mode == "lte" ? shark::Mode::Lte : shark::Mode::Wifi;
     cfg.gain = gain;
     cfg.antenna = antenna;
     if (band.find(',') != std::string::npos || (band != "2.4" && band != "5" && band != "all")) {

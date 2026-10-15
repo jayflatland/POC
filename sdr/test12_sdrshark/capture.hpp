@@ -19,6 +19,7 @@
 
 #include "adsb.hpp"
 #include "ble.hpp"
+#include "lte.hpp"
 #include "dsss_rx.hpp"
 #include "mac80211.hpp"
 #include "ofdm_rx.hpp"
@@ -27,7 +28,7 @@
 
 namespace shark {
 
-enum class Mode { Wifi, Ble, Adsb };
+enum class Mode { Wifi, Ble, Adsb, Lte };
 
 struct CaptureConfig {
     Mode mode = Mode::Wifi;
@@ -113,6 +114,7 @@ private:
         usrp_->set_rx_antenna(cfg_.antenna, 0);
         usrp_->set_rx_gain(cfg_.gain, 0);
         if (cfg_.mode == Mode::Wifi) run_wifi();
+        else if (cfg_.mode == Mode::Lte) run_lte();
         else run_continuous();
         usrp_.reset();
     }
@@ -271,6 +273,60 @@ private:
                 set_status((cfg_.mode == Mode::Adsb ? fmt("ADS-B 1090 MHz, %ld messages", count)
                                                     : fmt("BLE advertising channels 37+38, %ld packets", count)) + extra());
                 last = b.t;
+            }
+        }
+    }
+
+    // ---- LTE: dwell on each downlink band, search for cells ----
+    void run_lte() {
+        lte::CellSearch cs;
+        auto bands = lte::us_bands();
+        usrp_->set_rx_rate(lte::FS, 0);
+        usrp_->set_rx_bandwidth(1.4e6, 0);
+        uhd::stream_args_t sa("fc32", "sc16");
+        sa.channels = {0};
+        auto rx = usrp_->get_rx_stream(sa);
+        size_t n = (size_t)(0.25 * lte::FS);  // 250 ms -> ~50 PSS repetitions
+        std::vector<cfl> buf(n);
+        uhd::rx_metadata_t md;
+        std::map<int, double> seen;  // pci -> best rsrp
+        long found = 0;
+        while (!stop_) {
+            for (auto &b : bands) {
+                if (stop_) break;
+                usrp_->set_rx_freq(uhd::tune_request_t(b.freq), 0);
+                for (int i = 0; i < 100 && !usrp_->get_rx_sensor("lo_locked", 0).to_bool(); i++)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                set_status(fmt("LTE scan %s (%.1f MHz), %ld cells", b.name, b.freq / 1e6, found));
+                uhd::stream_cmd_t cmd(uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE);
+                cmd.num_samps = n;
+                cmd.stream_now = true;
+                rx->issue_stream_cmd(cmd);
+                size_t got = 0;
+                while (got < n) {
+                    size_t r = rx->recv(&buf[got], n - got, md, 1.0);
+                    if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) break;
+                    if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_OVERFLOW) continue;
+                    got += r;
+                    if (md.end_of_burst) break;
+                }
+                if (got < n / 2) continue;
+                double t = now() - t0_;
+                auto c = cs.search(buf);
+                if (c.pci >= 0 && c.sss_metric > 0.35f) {
+                    Packet p;
+                    p.time = t;
+                    lte::dissect_cell(p, c, b.name, b.freq);
+                    // attach the raw PSS/SSS region bytes so there is a payload to view
+                    p.data.resize(16);
+                    for (int i = 0; i < 16; i++) p.data[i] = (uint8_t)(c.pci >> (i % 2 ? 0 : 8));
+                    p.data[0] = (uint8_t)c.pci;
+                    p.data[1] = (uint8_t)c.n1;
+                    p.data[2] = (uint8_t)c.n2;
+                    p.data[3] = (uint8_t)c.subframe;
+                    found++;
+                    deliver(std::move(p));
+                }
             }
         }
     }

@@ -155,7 +155,7 @@ public:
         tb->setMovable(false);
         mode_ = new QComboBox;
         mode_->addItems({"WiFi 2.4 GHz (ch 1-11)", "WiFi 2.4 GHz (ch 1, 6, 11)", "WiFi 5 GHz", "WiFi 2.4 + 5 GHz",
-                         "Bluetooth LE advertising", "ADS-B / Mode S (1090 MHz)"});
+                         "Bluetooth LE advertising", "ADS-B / Mode S (1090 MHz)", "LTE cell scan"});
         tb->addWidget(new QLabel(" Mode: "));
         tb->addWidget(mode_);
         gain_ = new QDoubleSpinBox;
@@ -247,7 +247,7 @@ public:
     ~MainWindow() override { capture_.stop(); }
 
     void set_mode(const QString &m) {
-        static const QStringList names = {"wifi24", "wifi3", "wifi5", "wifiall", "ble", "adsb"};
+        static const QStringList names = {"wifi24", "wifi3", "wifi5", "wifiall", "ble", "adsb", "lte"};
         int i = names.indexOf(m.toLower());
         if (i >= 0) mode_->setCurrentIndex(i);
     }
@@ -267,7 +267,7 @@ private:
         }
         shark::CaptureConfig cfg;
         int m = mode_->currentIndex();
-        cfg.mode = m == 4 ? shark::Mode::Ble : m == 5 ? shark::Mode::Adsb : shark::Mode::Wifi;
+        cfg.mode = m == 4 ? shark::Mode::Ble : m == 5 ? shark::Mode::Adsb : m == 6 ? shark::Mode::Lte : shark::Mode::Wifi;
         cfg.wifi_channels = m == 0 ? shark::wifi_channels_for("2.4")
                             : m == 1 ? std::vector<int>{1, 6, 11}
                             : m == 2 ? shark::wifi_channels_for("5")
