@@ -17,6 +17,9 @@ class OfdmRx {
 public:
     static constexpr double MAX_CFO = 250e3;  // +/-20 ppm on both ends at 5.8 GHz is ~232 kHz
 
+    // also report 802.11n/ac/ax frames (from the legacy SIGNAL field, no payload decode)
+    bool report_undecoded = false;
+
 
     OfdmRx() {
         in_ = fftwf_alloc_complex(64);
@@ -322,6 +325,44 @@ private:
         if (end + 16 > x.size()) {
             return 0;
         }
+        size_t ppdu_start = ltf1 >= 192 ? ltf1 - 192 : 0;  // 160-sample STF + 32-sample LTF guard
+
+        // n/ac/ax frames spoof a 6 Mbps L-SIG whose length covers the whole PPDU.
+        // HT-SIG is QBPSK in the next symbol, VHT-SIG-A2 one later; HE repeats L-SIG (RL-SIG).
+        if (rate->mbps == 6 && nsym >= 2) {
+            int fmt = FMT_LEGACY;
+            cf e1[64], e2[64];
+            fft_at(ltf1 + 128 + 80 + 16 - B, cfo, Y);
+            equalize(Y, 1, e1);
+            fft_at(ltf1 + 128 + 160 + 16 - B, cfo, Y);
+            equalize(Y, 2, e2);
+            float re1 = 0, im1 = 0, re2 = 0, im2 = 0, same = 0, n0 = 0, n1 = 0;
+            for (int k : data_sc_) {
+                cf a = eq[k + 32], b = e1[k + 32], c = e2[k + 32];
+                re1 += std::abs(b.real());
+                im1 += std::abs(b.imag());
+                re2 += std::abs(c.real());
+                im2 += std::abs(c.imag());
+                same += a.real() * b.real();
+                n0 += a.real() * a.real();
+                n1 += b.real() * b.real();
+            }
+            if (im1 > 2.0f * re1 || im2 > 2.0f * re2) {
+                fmt = FMT_HT_VHT;
+            } else if (same > 0.8f * std::sqrt(n0 * n1)) {
+                fmt = FMT_HE;
+            }
+            if (fmt != FMT_LEGACY && report_undecoded) {
+                RxFrame frame;
+                frame.phy = fmt == FMT_HE ? "HE" : "HT/VHT";
+                frame.format = fmt;
+                frame.start = ppdu_start;
+                frame.end = end;
+                frame.power_db = (float)power_dbfs(x, ltf1, 128);
+                cb(frame);
+                return end;
+            }
+        }
 
         // data symbols
         std::vector<float> coded;
@@ -375,6 +416,8 @@ private:
         }
         frame.phy = "OFDM " + std::to_string(rate->mbps) + "M";
         frame.power_db = (float)power_dbfs(x, ltf1, 128);
+        frame.start = ppdu_start;
+        frame.end = end;
         cb(frame);
         return end;
     }

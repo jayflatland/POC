@@ -87,13 +87,16 @@ cmake --build build -j
 | `sdr/test10_airband` | `airband` | UHD, FFTW, pacat | VHF aviation (AM) scanner |
 | `sdr/test11_atsc_tv` | `atsc_tv` | UHD, FFTW, FFmpeg, GL/GLUT, pacat | ATSC digital TV receiver |
 | `sdr/test12_sdrshark` | `sdrshark`, `sdrshark_cli` | UHD, FFTW, Qt5 (GUI only) (+ test07 headers) | Wireshark-style WiFi/BLE/ADS-B/LTE viewer |
+| `sdr/test13_wifi_flow` | `wifi_flow`, `wifi_flow_cli` | UHD, FFTW, Qt5 (GUI only) (+ test07 headers) | per-network / per-device WiFi activity timeline |
 
 Notes:
-- **test08 and test12 `#include` headers from `sdr/test07_wifi_ssid`** (the
+- **test08, test12 and test13 `#include` headers from `sdr/test07_wifi_ssid`** (the
   802.11 PHY decoders), so keep the `sdr/` tree intact — they reference it
   by relative path in their `CMakeLists.txt`.
-- **test12's GUI** (`sdrshark`) needs `qtbase5-dev`; without it CMake still
-  builds the CLI (`sdrshark_cli`) and prints a note.
+- **test12's and test13's GUIs** (`sdrshark`, `wifi_flow`) need `qtbase5-dev`;
+  without it CMake still builds the CLI and prints a note.
+- **test13** streams 20 MS/s, so the B200 must be on USB 3 (USB 2 tops out
+  around 9.6 MS/s).
 - **test11** needs the FFmpeg `-dev` packages; without them CMake fails.
 
 ## 4. Fresh-machine quickstart

@@ -15,6 +15,9 @@
 
 class DsssRx {
 public:
+    // also report CCK (5.5/11 Mbps) frames, timing only
+    bool report_undecoded = false;
+
     DsssRx() {
         static const float barker[11] = {1, -1, 1, 1, -1, 1, 1, 1, -1, -1, -1};
         for (int k = 0; k < 20; k++) {
@@ -212,6 +215,10 @@ private:
             return pos;
         }
         stats.dsss_header_ok++;
+        // the header LENGTH is the PSDU duration in us; the PLCP preamble + header is 192 (long) or 96 (short) us
+        size_t pre = 20 * (short_preamble ? 96 : 192);
+        size_t ppdu_start = pos >= pre ? pos - pre : 0;
+        size_t ppdu_end = pos + 20 * (size_t)length;
 
         bool two_mbps;
         if (signal == 0x0A) {
@@ -219,6 +226,15 @@ private:
         } else if (signal == 0x14) {
             two_mbps = true;
         } else {
+            if (report_undecoded && (signal == 0x37 || signal == 0x6E) && ppdu_end <= x_->size()) {
+                RxFrame frame;
+                frame.phy = signal == 0x37 ? "CCK 5.5M" : "CCK 11M";
+                frame.format = FMT_CCK;
+                frame.start = ppdu_start;
+                frame.end = ppdu_end;
+                frame.power_db = (float)power_dbfs(*x_, start, pos - start);
+                cb(frame);
+            }
             return pos + 20 * (size_t)length;  // CCK, skip it
         }
         int bytes = two_mbps ? length / 4 : length / 8;
@@ -256,6 +272,8 @@ private:
         }
         frame.phy = std::string("DSSS ") + (two_mbps ? "2M" : "1M") + (short_preamble ? " short" : "");
         frame.power_db = (float)power_dbfs(*x_, start, pos - start);
+        frame.start = ppdu_start;
+        frame.end = pos;
         cb(frame);
         return pos;
     }

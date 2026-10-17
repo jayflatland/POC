@@ -12,10 +12,16 @@ using cf = std::complex<float>;
 
 static const double PI = 3.14159265358979323846;
 
+// PHY formats. Only Legacy frames carry a psdu; the others are reported (timing only)
+// when the receiver's report_undecoded flag is set.
+enum RxFormat { FMT_LEGACY = 0, FMT_HT_VHT = 1, FMT_HE = 2, FMT_CCK = 3 };
+
 struct RxFrame {
     std::vector<uint8_t> psdu;  // MAC frame including FCS
     std::string phy;            // e.g. "OFDM 6M", "DSSS 1M"
     float power_db = 0.0f;      // dBFS
+    size_t start = 0, end = 0;  // sample span of the whole PPDU (preamble start .. last symbol)
+    int format = FMT_LEGACY;
 };
 
 using FrameCallback = std::function<void(const RxFrame &)>;
