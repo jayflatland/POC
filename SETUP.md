@@ -58,6 +58,36 @@ Playback projects (`test05`, `test10`, `test11`) pipe audio to `pacat`
 your system uses PipeWire, make sure `pipewire-pulse` is active so `pacat`
 has a server to talk to.
 
+### macOS (test13 so far)
+
+`sdr/test13_wifi_flow` also builds on macOS with Homebrew:
+
+```bash
+brew install cmake pkg-config boost fftw qt@5 uhd
+python3 $(brew --prefix uhd)/lib/uhd/utils/uhd_images_downloader.py -t b2xx   # needs requests
+```
+
+- `qt@5` is keg-only; test13's `CMakeLists.txt` finds it via `brew --prefix`.
+- With an **Intel Homebrew** (`/usr/local`, including under Rosetta on Apple
+  Silicon) the libraries are x86_64-only, so CMake builds x86_64 binaries
+  automatically; they run under Rosetta. A native `/opt/homebrew` builds arm64.
+- **Run `conda deactivate` first** if conda is active: it sets `CC`/`CXX`,
+  `CMAKE_PREFIX_PATH` and puts its own `pkg-config` first on `PATH`, which
+  pulls in conda's libraries and compiler and breaks the link.
+- CMake uses Homebrew's `pkg-config` even if MacPorts' is first on `PATH`.
+- No udev rules are needed on macOS, but on Apple Silicon laptops macOS
+  blocks new USB accessories until you click **Allow** ("Allow accessory to
+  connect?"; or System Settings → Privacy & Security). Until then the B200
+  shows in System Information but `uhd_find_devices` finds nothing.
+- Homebrew's UHD doesn't put `uhd_images_downloader` on `PATH`, hence the
+  script above; run it with any Python that has `requests`.
+- Quit Chrome if the B200 stops responding; it can hold the device via WebUSB.
+- Tested on macOS 13 (Apple Silicon, Intel Homebrew under Rosetta) with
+  UHD 4.11, Boost 1.92, Qt 5.15. There's no UHD bottle for that combo, so
+  `brew install uhd` builds it from source (~10+ min). If it fails linking
+  `boost::program_options`, look for stale hand-installed Boost / UHD files
+  in `/usr/local` (`brew link --overwrite boost`, remove old `libuhd*`).
+
 ## 2. Building a project
 
 Same pattern everywhere:
